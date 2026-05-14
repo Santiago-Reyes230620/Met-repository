@@ -1,27 +1,50 @@
 import { questions } from "../data/questions"
 import { useState } from "react"
 import Button from "../components/ui/Button"
+import QuestionCard from "../components/quiz/questionCard"
 
 
 export default function Home() {
-    const [score,setScore] = useState(0)
-    const [currentQuestion, setCurrentQuestion] = useState(0)
+  const [score, setScore] = useState(0)
+  const [currentQuestion, setCurrentQuestion] = useState(0)
+  const [selectedAnswer, setSelectedAnswer] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("All")
 
-    const question = questions[currentQuestion]
-   
-     function handleAnswer(selectedOption: string) {
-        if (selectedOption === question.correctAnswer) {
-            setScore(score + 1)
-        }
-        setCurrentQuestion(currentQuestion + 1)
+  const filteredQuestions = selectedCategory === "All" ? questions : questions.filter((q) => q.category === selectedCategory)
+  const question = filteredQuestions[currentQuestion]
+  const progress = ((currentQuestion + 1) / filteredQuestions.length) * 100
+  const categories = ["All", ...new Set(questions.map((q) => q.category))]
+  
+  function handleAnswer(selectedOption: string) {
+    setSelectedAnswer(selectedOption)
+
+    if (selectedOption === question.correctAnswer) {
+      setScore(score + 1)
     }
+    setCurrentQuestion(currentQuestion + 1)
+  }
   if (!question) {
     return (
-      <main className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
+      <div className="text-center space-y-6">
         <h1 className="text-5xl font-bold">
           Quiz Finished 🎉
         </h1>
-      </main>
+
+        <p className="text-2xl text-slate-300">
+          Final Score: {score} / {filteredQuestions.length}
+        </p>
+
+        <button
+          onClick={() => {
+            setCurrentQuestion(0)
+            setScore(0)
+            setSelectedAnswer("")
+          }}
+          className="bg-blue-500 hover:bg-blue-600 transition px-6 py-3 rounded-xl font-semibold"
+        >
+          Restart Quiz
+        </button>
+      </div>
     )
   }
 
@@ -41,20 +64,59 @@ export default function Home() {
             Improve your grammar, reading, listening and speaking skills with interactive MET exercises.
           </p>
 
-          <h2 className="text-2xl font-bold">
-            {question.question}
-          </h2>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm text-slate-400">
+              <span>Progress</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
 
-          <div className="text-2xl font-bold">
-           {question.options.map((Option) =>(
-            <button key={Option}
-            className="block w-full bg-slate-800 hover:bg-slate-700 p-4 rounded-xl text-left"
-            onClick={() => handleAnswer(Option)}
-            >
-             {Option}    
-            </button>
-           ))} 
+            <div className="w-full bg-slate-800 rounded-full h-3">
+              <div
+                className="bg-blue-500 h-3 rounded-full transition-all duration-500"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+
           </div>
+          <div className="flex gap-3 flex-wrap">
+
+            {categories.map((category) => (
+
+              <button
+                key={category}
+                onClick={() => {
+                  setSelectedCategory(category)
+                  setCurrentQuestion(0)
+                  setScore(0)
+                }}
+                className={`px-4 py-2 rounded-full transition ${selectedCategory === category
+                    ? "bg-blue-500 text-white"
+                    : "bg-slate-800 hover:bg-slate-700"
+                  }`}
+              >
+                {category}
+              </button>
+
+            ))}
+
+          </div>
+
+          <div className="flex gap-3">
+            <span className="bg-purple-500/20 text-purple-300 px-4 py-2 rounded-full text-sm">
+              {question.category}
+            </span>
+            <span className="bg-orange-500/20 text-orange-300 px-4 py-2 rounded-full text-sm">
+              {question.difficulty}
+            </span>
+          </div>
+
+          <QuestionCard
+            question={question.question}
+            options={question.options}
+            selectedAnswer={selectedAnswer}
+            correctAnswer={question.correctAnswer}
+            onAnswer={handleAnswer}
+          />
 
           <h2 className="text-3xl font-bold">
             Your Score: {score}
