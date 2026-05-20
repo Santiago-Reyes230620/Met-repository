@@ -25,7 +25,7 @@ export default function QuestionCard({
         {options.map((option) => (
           <button
             key={option}
-            disabled={!!selectedAnswer}
+            disabled={selectedAnswer !== ""}
             onClick={() => onAnswer(option)}
             className={`block w-full p-4 rounded-xl text-left transition ${
               selectedAnswer
@@ -35,7 +35,8 @@ export default function QuestionCard({
                   ? "bg-red-600 text-white"
                   : "bg-slate-800"
                 : "bg-slate-800 hover:bg-slate-700"
-            }`}
+            }disabled:opacity-50
+            `}
           >
             {option}
           </button>

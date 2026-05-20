@@ -1,44 +1,81 @@
 import { questions } from "../data/questions"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Button from "../components/ui/Button"
 import QuestionCard from "../components/quiz/questionCard"
 
 
+
 export default function Home() {
   const [score, setScore] = useState(0)
-  const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [selectedAnswer, setSelectedAnswer] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("All")
 
+  const [currentQuestion, setCurrentQuestion] = useState(0)
+  const [wrongAnswers, setWrongAnswers] = useState(0)
+  const [selectedAnswer, setSelectedAnswer] = useState("")
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
+  const [timeLeft, setTimeLeft] = useState(15)
+  const [selectedCategory, setSelectedCategory] = useState("All")
   const filteredQuestions = selectedCategory === "All" ? questions : questions.filter((q) => q.category === selectedCategory)
-  const question = filteredQuestions[currentQuestion]
+  const question = filteredQuestions[currentQuestion] || null
   const progress = ((currentQuestion + 1) / filteredQuestions.length) * 100
   const categories = ["All", ...new Set(questions.map((q) => q.category))]
-  
+  useEffect(() => {
+  if (!question) return
+
+  const timer = setTimeout(() => {
+    if (timeLeft <= 1) {
+      setCurrentQuestion((prev) => prev + 1)
+      setSelectedAnswer("")
+      setIsCorrect(null)
+      setTimeLeft(15)
+    } else {
+      setTimeLeft(timeLeft - 1)
+    }
+  }, 1000)
+
+  return () => clearTimeout(timer)
+}, [timeLeft, question])
+ 
   function handleAnswer(selectedOption: string) {
     setSelectedAnswer(selectedOption)
 
     if (selectedOption === question.correctAnswer) {
+      setIsCorrect(true) 
       setScore(score + 1)
+      
+    } else {
+      setIsCorrect(false)
+      setWrongAnswers(wrongAnswers + 1)
     }
-    setCurrentQuestion(currentQuestion + 1)
+    setTimeout(() => {
+      setCurrentQuestion((prev) => prev + 1)
+      setSelectedAnswer("")
+      setIsCorrect(null)
+    }, 1500)
   }
   if (!question) {
     return (
       <div className="text-center space-y-6">
         <h1 className="text-5xl font-bold">
-          Quiz Finished 🎉
+          Quiz Finished 
         </h1>
 
         <p className="text-2xl text-slate-300">
           Final Score: {score} / {filteredQuestions.length}
         </p>
 
+        <p className="text-xl text-slate-400">
+          Wrong Answers: {wrongAnswers}
+        </p>
+        <p className="text-lg text-green-400">
+          Accuracy: {Math.round((score / filteredQuestions.length) * 100)}%
+        </p>
         <button
           onClick={() => {
             setCurrentQuestion(0)
             setScore(0)
             setSelectedAnswer("")
+            setIsCorrect(null)
+            setWrongAnswers(0)
           }}
           className="bg-blue-500 hover:bg-blue-600 transition px-6 py-3 rounded-xl font-semibold"
         >
@@ -117,6 +154,22 @@ export default function Home() {
             correctAnswer={question.correctAnswer}
             onAnswer={handleAnswer}
           />
+          {isCorrect == true && (
+            <p className="text-green-400 font-bold text-xl">
+              Correct!
+            </p>
+          )}
+          {isCorrect == false && (
+            <div className="space-y-2">
+
+              <p className="text-red-400 font-bold text-xl">
+                Incorrect!
+              </p>
+              <p className="text-slate-300">
+                The correct answer is: <span className="text-green-400 font-bold ml-2">{question.correctAnswer}</span>
+              </p>
+            </div>
+          )}
 
           <h2 className="text-3xl font-bold">
             Your Score: {score}
