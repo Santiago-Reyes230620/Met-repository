@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/src/contexts/AuthContext";
+import { Button } from "@/src/components/ui/button";
+import { Input } from "@/src/components/ui/input";
+import { Label } from "@/src/components/ui/label";
+import { Card, CardContent } from "@/src/components/ui/card";
+import { Alert, AlertDescription } from "@/src/components/ui/alert";
 import { GraduationCap, BookOpen, Loader2, Eye, EyeOff, CheckCircle2, Sparkles, Star } from "lucide-react";
 
 export default function RegisterPage() {
