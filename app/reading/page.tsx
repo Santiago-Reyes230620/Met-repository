@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/src/contexts/AuthContext";
-import { supabase, ReadingPassage, ReadingQuestion } from "@/src/lib/supabase/client";
-import { Navbar } from "@/src/components/shared/Navbar";
-import { Footer } from "@/src/components/shared/Footer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card";
-import { Button } from "@/src/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/src/components/ui/radio-group";
-import { Label } from "@/src/components/ui/label";
-import { Badge } from "@/src/components/ui/badge";
-import { Alert, AlertDescription } from "@/src/components/ui/alert";
-import { ScrollArea } from "@/src/components/ui/scroll-area";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase, ReadingPassage, ReadingQuestion } from "@/lib/supabase/client";
+import { Navbar } from "@/components/shared/Navbar";
+import { Footer } from "@/components/shared/Footer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   FileText,
   ChevronRight,
