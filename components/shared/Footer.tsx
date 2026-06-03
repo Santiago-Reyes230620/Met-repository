@@ -35,13 +35,13 @@ export function Footer() {
           <div>
             <h3 className="font-semibold mb-3 text-foreground">Connect</h3>
             <div className="flex space-x-3">
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="https://github.com" rel="noopener noreferrer" target="_blank" className="text-muted-foreground hover:text-foreground transition-colors">
                 <Github className="h-5 w-5" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="https://twitter.com" rel="noopener noreferrer" target="_blank" className="text-muted-foreground hover:text-foreground transition-colors">
                 <Twitter className="h-5 w-5" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="mailto:contact@metprep.com" className="text-muted-foreground hover:text-foreground transition-colors">
                 <Mail className="h-5 w-5" />
               </a>
             </div>

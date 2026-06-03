@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase, GrammarExercise } from "@/lib/supabase/client";
+import { DifficultyLevel } from "@/types";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,7 +43,7 @@ export default function GrammarPage() {
   const [answeredCount, setAnsweredCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [difficulty, setDifficulty] = useState<string>("all");
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>("all");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -188,7 +189,7 @@ export default function GrammarPage() {
                   <CardTitle className="text-lg">Difficulty</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {["all", "easy", "medium", "hard"].map((diff) => (
+                  {(['all', 'easy', 'medium', 'hard'] as DifficultyLevel[]).map((diff) => (
                     <Button
                       key={diff}
                       variant={difficulty === diff ? "default" : "outline"}

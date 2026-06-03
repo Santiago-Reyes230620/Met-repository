@@ -27,6 +27,7 @@ export default function RegisterPage() {
     { met: /[A-Z]/.test(password), text: "One uppercase letter" },
     { met: /[a-z]/.test(password), text: "One lowercase letter" },
     { met: /[0-9]/.test(password), text: "One number" },
+    { met: /[!@#$%^&*(),.?":{}|<>]/.test(password), text: "One special character" },
   ];
 
   const isPasswordValid = passwordRequirements.every((req) => req.met);

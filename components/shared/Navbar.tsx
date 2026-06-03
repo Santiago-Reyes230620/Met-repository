@@ -51,24 +51,40 @@ export function Navbar() {
     <>
       {user ? (
         <>
-          <Link href="/dashboard" onClick={() => setIsOpen(false)}>
-            <Button variant={mobile ? "ghost" : "ghost"} className={`w-full ${mobile ? "justify-start" : ""} text-base`}>
+          <Link href="/dashboard">
+            <Button
+              onClick={() => mobile && setIsOpen(false)}
+              variant="ghost"
+              className={`${mobile ? "w-full justify-start" : ""} text-base`}
+            >
               <BarChart3 className="mr-2 h-5 w-5" />
               Dashboard
             </Button>
           </Link>
-          <Link href="/grammar" onClick={() => setIsOpen(false)}>
-            <Button variant="ghost" className={`w-full ${mobile ? "justify-start" : ""} text-base`}>
+          <Link href="/grammar">
+            <Button
+              onClick={() => mobile && setIsOpen(false)}
+              variant="ghost"
+              className={`${mobile ? "w-full justify-start" : ""} text-base`}
+            >
               Grammar
             </Button>
           </Link>
-          <Link href="/vocabulary" onClick={() => setIsOpen(false)}>
-            <Button variant="ghost" className={`w-full ${mobile ? "justify-start" : ""} text-base`}>
+          <Link href="/vocabulary">
+            <Button
+              onClick={() => mobile && setIsOpen(false)}
+              variant="ghost"
+              className={`${mobile ? "w-full justify-start" : ""} text-base`}
+            >
               Vocabulary
             </Button>
           </Link>
-          <Link href="/reading" onClick={() => setIsOpen(false)}>
-            <Button variant="ghost" className={`w-full ${mobile ? "justify-start" : ""} text-base`}>
+          <Link href="/reading">
+            <Button
+              onClick={() => mobile && setIsOpen(false)}
+              variant="ghost"
+              className={`${mobile ? "w-full justify-start" : ""} text-base`}
+            >
               Reading
             </Button>
           </Link>
