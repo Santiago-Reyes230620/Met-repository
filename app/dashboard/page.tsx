@@ -17,48 +17,78 @@ import {
   TrendingUp,
   Flame,
   Trophy,
-  Clock,
   ArrowRight,
   Star,
   Sparkles,
+  Headphones,
+  Mic,
+  PenTool,
+  Zap,
 } from "lucide-react";
 
-const quickActions = [
+const skillCards = [
   {
-    title: "Grammar Practice",
-    description: "Improve your sentence structure with targeted exercises",
-    icon: <BookOpen className="h-7 w-7" />,
+    title: "Grammar",
+    icon: BookOpen,
     href: "/grammar",
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-    gradient: "from-primary/20 to-chart-1/10",
+    color: "from-blue-500 to-blue-600",
+    iconBg: "bg-blue-500/15",
+    iconColor: "text-blue-500",
+    count: "156 exercises",
   },
   {
-    title: "Vocabulary Builder",
-    description: "Expand your word knowledge with contextual learning",
-    icon: <MessageSquareText className="h-7 w-7" />,
+    title: "Vocabulary",
+    icon: MessageSquareText,
     href: "/vocabulary",
-    color: "text-chart-2",
-    bgColor: "bg-chart-2/10",
-    gradient: "from-chart-2/20 to-chart-4/10",
+    color: "from-emerald-500 to-emerald-600",
+    iconBg: "bg-emerald-500/15",
+    iconColor: "text-emerald-500",
+    count: "128 exercises",
   },
   {
-    title: "Reading Practice",
-    description: "Enhance comprehension skills with diverse passages",
-    icon: <FileText className="h-7 w-7" />,
+    title: "Reading",
+    icon: FileText,
     href: "/reading",
-    color: "text-chart-3",
-    bgColor: "bg-chart-3/10",
-    gradient: "from-chart-3/20 to-chart-5/10",
+    color: "from-amber-500 to-amber-600",
+    iconBg: "bg-amber-500/15",
+    iconColor: "text-amber-500",
+    count: "17 passages",
   },
   {
-    title: "Take a Quiz",
-    description: "Test your overall knowledge with adaptive tests",
-    icon: <Target className="h-7 w-7" />,
+    title: "Listening",
+    icon: Headphones,
+    href: "/listening",
+    color: "from-rose-500 to-rose-600",
+    iconBg: "bg-rose-500/15",
+    iconColor: "text-rose-500",
+    count: "40 exercises",
+  },
+  {
+    title: "Speaking",
+    icon: Mic,
+    href: "/speaking",
+    color: "from-teal-500 to-teal-600",
+    iconBg: "bg-teal-500/15",
+    iconColor: "text-teal-500",
+    count: "30 exercises",
+  },
+  {
+    title: "Writing",
+    icon: PenTool,
+    href: "/writing",
+    color: "from-violet-500 to-violet-600",
+    iconBg: "bg-violet-500/15",
+    iconColor: "text-violet-500",
+    count: "27 exercises",
+  },
+  {
+    title: "Daily Quiz",
+    icon: Target,
     href: "/quiz",
-    color: "text-chart-4",
-    bgColor: "bg-chart-4/10",
-    gradient: "from-chart-4/20 to-primary/10",
+    color: "from-primary to-chart-2",
+    iconBg: "bg-primary/15",
+    iconColor: "text-primary",
+    count: "15 questions/day",
   },
 ];
 
@@ -93,6 +123,15 @@ export default function DashboardPage() {
   const readingScore = profile?.reading_score || 0;
   const totalScore = Math.round((grammarScore + vocabularyScore + readingScore) / 3);
 
+  const progressItems = [
+    { label: "Grammar", icon: BookOpen, score: grammarScore, bg: "bg-primary/10", color: "text-primary" },
+    { label: "Vocabulary", icon: MessageSquareText, score: vocabularyScore, bg: "bg-chart-2/10", color: "text-chart-2" },
+    { label: "Reading", icon: FileText, score: readingScore, bg: "bg-chart-3/10", color: "text-chart-3" },
+    { label: "Listening", icon: Headphones, score: 45, bg: "bg-rose-500/10", color: "text-rose-500" },
+    { label: "Speaking", icon: Mic, score: 35, bg: "bg-teal-500/10", color: "text-teal-500" },
+    { label: "Writing", icon: PenTool, score: 30, bg: "bg-violet-500/10", color: "text-violet-500" },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-card/30 to-background">
       <Navbar />
@@ -116,8 +155,8 @@ export default function DashboardPage() {
               </div>
               <Link href="/quiz" className="hidden md:block">
                 <Button className="bg-gradient-to-r from-primary to-chart-2 hover:scale-105 transition-all duration-300 text-base px-6">
-                  Quick Quiz
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <Zap className="mr-2 h-4 w-4" />
+                  Daily Quiz
                 </Button>
               </Link>
             </div>
@@ -176,105 +215,73 @@ export default function DashboardPage() {
 
           {/* Main Content */}
           <div className={`grid lg:grid-cols-3 gap-6 md:gap-8 ${mounted ? 'slide-in-from-bottom' : 'opacity-0'}`} style={{ animationDelay: '0.2s' }}>
-            {/* Progress Section */}
             <div className="lg:col-span-2 space-y-6 md:space-y-8">
+              {/* Your Progress */}
               <Card className="premium-card">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-xl md:text-2xl">Your Progress</CardTitle>
                   <CardDescription className="text-base">
-                    Track your performance across different areas
+                    Track your performance across all skills
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-8">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
-                          <BookOpen className="h-4 w-4 text-primary" />
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+                    {progressItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <div key={item.label} className="space-y-1.5">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center space-x-2.5">
+                              <div className={`flex items-center justify-center w-7 h-7 rounded-lg ${item.bg}`}>
+                                <Icon className={`h-3.5 w-3.5 ${item.color}`} />
+                              </div>
+                              <span className="font-semibold text-sm">{item.label}</span>
+                            </div>
+                            <span className="text-sm font-bold">{item.score}%</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full bg-gradient-to-r ${item.color === 'text-primary' ? 'from-primary to-chart-1' : item.color === 'text-chart-2' ? 'from-chart-2 to-chart-4' : item.color === 'text-chart-3' ? 'from-chart-3 to-chart-5' : item.color === 'text-rose-500' ? 'from-rose-500 to-pink-500' : item.color === 'text-teal-500' ? 'from-teal-500 to-cyan-500' : 'from-violet-500 to-purple-500'} transition-all duration-700`}
+                              style={{ width: `${item.score}%` }}
+                            />
+                          </div>
                         </div>
-                        <span className="font-semibold text-base">Grammar</span>
-                      </div>
-                      <span className="text-lg font-bold text-gradient">{grammarScore}%</span>
-                    </div>
-                    <Progress value={grammarScore} className="h-3 rounded-full" />
-                    <p className="text-sm text-muted-foreground">
-                      {grammarScore >= 80
-                        ? "Excellent! Keep up the great work!"
-                        : grammarScore >= 60
-                        ? "Good progress! A bit more practice and you'll master it."
-                        : "Keep practicing to improve your grammar skills."}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-chart-2/10">
-                          <MessageSquareText className="h-4 w-4 text-chart-2" />
-                        </div>
-                        <span className="font-semibold text-base">Vocabulary</span>
-                      </div>
-                      <span className="text-lg font-bold text-gradient">{vocabularyScore}%</span>
-                    </div>
-                    <Progress value={vocabularyScore} className="h-3 rounded-full" />
-                    <p className="text-sm text-muted-foreground">
-                      {vocabularyScore >= 80
-                        ? "Outstanding vocabulary skills!"
-                        : vocabularyScore >= 60
-                        ? "Building a solid foundation in vocabulary."
-                        : "Expand your vocabulary with more practice."}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-chart-3/10">
-                          <FileText className="h-4 w-4 text-chart-3" />
-                        </div>
-                        <span className="font-semibold text-base">Reading</span>
-                      </div>
-                      <span className="text-lg font-bold text-gradient">{readingScore}%</span>
-                    </div>
-                    <Progress value={readingScore} className="h-3 rounded-full" />
-                    <p className="text-sm text-muted-foreground">
-                      {readingScore >= 80
-                        ? "Excellent reading comprehension!"
-                        : readingScore >= 60
-                        ? "Good comprehension skills developing."
-                        : "Practice reading to improve comprehension."}
-                    </p>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Quick Actions */}
+              {/* Practice Skills */}
               <div>
-                <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Quick Actions</h2>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {quickActions.map((action, index) => (
-                    <Card
-                      key={index}
-                      className="premium-card cursor-pointer group"
-                      onClick={() => router.push(action.href)}
-                    >
-                      <CardContent className="p-5 md:p-6 relative z-10">
-                        <div className="flex items-start space-x-4">
-                          <div className={`p-3 md:p-4 rounded-xl ${action.bgColor} ${action.color} group-hover:scale-110 transition-transform duration-300`}>
-                            {action.icon}
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="font-bold mb-1 text-base md:text-lg">{action.title}</h3>
-                            <p className="text-sm text-muted-foreground mb-3">{action.description}</p>
-                            <div className="flex items-center text-sm font-medium text-primary group-hover:text-primary/80 transition-colors">
-                              Start Practice
-                              <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-xl md:text-2xl font-bold">Practice Skills</h2>
+                  <span className="text-sm text-muted-foreground">{skillCards.length} sections available</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                  {skillCards.map((skill) => {
+                    const Icon = skill.icon;
+                    return (
+                      <button
+                        key={skill.title}
+                        onClick={() => router.push(skill.href)}
+                        className="group text-left"
+                      >
+                        <Card className="premium-card h-full transition-all duration-300 group-hover:shadow-lg group-hover:-translate-y-1 group-hover:border-primary/30">
+                          <CardContent className="p-4 md:p-5 relative z-10 flex flex-col items-center text-center">
+                            <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl ${skill.iconBg} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300`}>
+                              <Icon className={`h-6 w-6 md:h-7 md:w-7 ${skill.iconColor}`} />
                             </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                            <h3 className="font-bold text-sm md:text-base mb-1">{skill.title}</h3>
+                            <p className="text-xs text-muted-foreground">{skill.count}</p>
+                            <div className={`mt-3 w-7 h-7 rounded-full bg-gradient-to-br ${skill.color} flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300`}>
+                              <ArrowRight className="h-3.5 w-3.5 text-white" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -310,8 +317,10 @@ export default function DashboardPage() {
                 <CardContent className="space-y-4 relative z-10">
                   {[
                     { text: "Practice regularly - consistency is key", color: "bg-primary" },
-                    { text: "Review incorrect answers to learn", color: "bg-chart-2" },
-                    { text: "Read diverse materials for vocabulary", color: "bg-chart-3" },
+                    { text: "Review incorrect answers to learn from mistakes", color: "bg-chart-2" },
+                    { text: "Use the daily quiz to test mixed skills", color: "bg-chart-3" },
+                    { text: "Listen first, then read the transcript", color: "bg-rose-500" },
+                    { text: "Speak out loud even when alone", color: "bg-teal-500" },
                   ].map((tip, idx) => (
                     <div key={idx} className="flex items-start space-x-3">
                       <div className={`w-2.5 h-2.5 rounded-full ${tip.color} mt-1.5 shrink-0`} />

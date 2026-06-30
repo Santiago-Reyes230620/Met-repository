@@ -82,8 +82,6 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={loading}
-                    pattern="[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$"
-                    title="Please enter a valid email address"
                     className="h-12 text-base bg-background/50"
                   />
                 </div>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/hooks/use-subscription";
+import { useDailyLimit } from "@/hooks/use-daily-limit";
 import { supabase, GrammarExercise } from "@/lib/supabase/client";
-import { DifficultyLevel } from "@/types";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DailyLimitAlert } from "@/components/shared/DailyLimitAlert";
 import {
   BookOpen,
   ChevronRight,
@@ -22,6 +24,7 @@ import {
   Lightbulb,
   ArrowRight,
   Loader2,
+  Lock,
 } from "lucide-react";
 
 const categories = [
@@ -33,6 +36,8 @@ const categories = [
 
 export default function GrammarPage() {
   const { user, loading: authLoading } = useAuth();
+  const { subscription, loading: subLoading, hasAccess, isFree } = useSubscription();
+  const { dailyCount, canContinue, getRemainingExercises, getTimeUntilReset, incrementDailyCount } = useDailyLimit();
   const router = useRouter();
 
   const [exercises, setExercises] = useState<GrammarExercise[]>([]);
@@ -43,15 +48,31 @@ export default function GrammarPage() {
   const [answeredCount, setAnsweredCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [difficulty, setDifficulty] = useState<DifficultyLevel>("all");
+  const [difficulty, setDifficulty] = useState<string>("all");
+  const [showDailyLimit, setShowDailyLimit] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login");
-    } else if (!authLoading && user) {
-      fetchExercises();
+    } else if (!authLoading && user && !subLoading) {
+      if (!hasAccess("grammar")) {
+        router.push("/pricing");
+      } else {
+        fetchExercises();
+      }
     }
-  }, [user, authLoading, selectedCategory, difficulty, router]);
+  }, [user, authLoading, selectedCategory, difficulty, router, subLoading]);
+
+  // Separate effect for checking daily limit
+  const checkDailyLimit = useCallback(() => {
+    if (!loading && isFree() && !canContinue) {
+      setShowDailyLimit(true);
+    }
+  }, [loading, isFree, canContinue]);
+
+  useEffect(() => {
+    checkDailyLimit();
+  }, [checkDailyLimit]);
 
   const fetchExercises = async () => {
     setLoading(true);
@@ -87,8 +108,13 @@ export default function GrammarPage() {
     setSelectedAnswer(answer);
   };
 
-  const checkAnswer = () => {
+  const checkAnswer = async () => {
     if (!selectedAnswer || !exercises[currentIndex]) return;
+
+    // Increment daily count for free users
+    if (isFree()) {
+      await incrementDailyCount();
+    }
 
     const isCorrect = selectedAnswer === exercises[currentIndex].correct_answer;
     setShowResult(true);
@@ -189,7 +215,7 @@ export default function GrammarPage() {
                   <CardTitle className="text-lg">Difficulty</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {(['all', 'easy', 'medium', 'hard'] as DifficultyLevel[]).map((diff) => (
+                  {["all", "easy", "medium", "hard"].map((diff) => (
                     <Button
                       key={diff}
                       variant={difficulty === diff ? "default" : "outline"}
@@ -345,6 +371,16 @@ export default function GrammarPage() {
       </main>
 
       <Footer />
+
+      {isFree() && (
+        <DailyLimitAlert
+          isOpen={showDailyLimit}
+          remaining={getRemainingExercises()}
+          hoursUntilReset={getTimeUntilReset().hours}
+          minutesUntilReset={getTimeUntilReset().minutes}
+          onClose={() => setShowDailyLimit(false)}
+        />
+      )}
     </div>
   );
 }

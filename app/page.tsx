@@ -21,46 +21,67 @@ import {
   Rocket,
   Volume2,
   Headphones,
+  PenTool,
   Check,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const exerciseTypes = [
   {
-    icon: <BookOpen className="h-8 w-8 text-primary" />,
+    icon: <BookOpen className="h-8 w-8" />,
     title: "Grammar",
     description: "500+ exercises covering all grammar topics",
-    bgColor: "bg-gradient-to-br from-primary/10 to-chart-1/10",
+    color: "text-blue-500",
+    bgColor: "bg-blue-500/10",
+    href: "/grammar",
   },
   {
-    icon: <MessageSquareText className="h-8 w-8 text-chart-2" />,
+    icon: <MessageSquareText className="h-8 w-8" />,
     title: "Vocabulary",
     description: "1000+ words with context and examples",
-    bgColor: "bg-gradient-to-br from-chart-2/10 to-chart-4/10",
+    color: "text-emerald-500",
+    bgColor: "bg-emerald-500/10",
+    href: "/vocabulary",
   },
   {
-    icon: <FileText className="h-8 w-8 text-chart-3" />,
+    icon: <FileText className="h-8 w-8" />,
     title: "Reading",
     description: "200+ passages with comprehension questions",
-    bgColor: "bg-gradient-to-br from-chart-3/10 to-chart-5/10",
+    color: "text-amber-500",
+    bgColor: "bg-amber-500/10",
+    href: "/reading",
   },
   {
-    icon: <Headphones className="h-8 w-8 text-chart-4" />,
+    icon: <Headphones className="h-8 w-8" />,
     title: "Listening",
     description: "Native speaker audio with transcripts",
-    bgColor: "bg-gradient-to-br from-primary/10 to-chart-2/10",
+    color: "text-rose-500",
+    bgColor: "bg-rose-500/10",
+    href: "/listening",
   },
   {
-    icon: <Zap className="h-8 w-8 text-chart-5" />,
+    icon: <Zap className="h-8 w-8" />,
     title: "Speaking",
-    description: "AI pronunciation evaluation and feedback",
-    bgColor: "bg-gradient-to-br from-chart-3/10 to-primary/10",
+    description: "Speech recognition with pronunciation feedback",
+    color: "text-teal-500",
+    bgColor: "bg-teal-500/10",
+    href: "/speaking",
   },
   {
-    icon: <Award className="h-8 w-8 text-chart-2" />,
+    icon: <PenTool className="h-8 w-8" />,
+    title: "Writing",
+    description: "Guided writing exercises with grammar checks",
+    color: "text-violet-500",
+    bgColor: "bg-violet-500/10",
+    href: "/writing",
+  },
+  {
+    icon: <Award className="h-8 w-8" />,
     title: "Practice Tests",
     description: "Full-length exams with detailed analysis",
-    bgColor: "bg-gradient-to-br from-chart-2/10 to-chart-3/10",
+    color: "text-cyan-500",
+    bgColor: "bg-cyan-500/10",
+    href: "/quiz",
   },
 ];
 
@@ -70,22 +91,24 @@ const pricingPlans = [
     price: "$0",
     description: "Get started with basics",
     features: [
+      "5 daily exercises",
       "100+ grammar exercises",
       "200+ vocabulary words",
       "5 reading passages",
-      "Basic progress tracking",
       "Limited listening exercises",
+      "Basic progress tracking",
     ],
     cta: "Get Started",
     highlighted: false,
   },
   {
-    name: "Premium",
+    name: "Pro",
     price: "$9.99",
     period: "/month",
     description: "Best for serious learners",
     features: [
-      "Unlimited grammar exercises",
+      "Unlimited daily exercises",
+      "All grammar exercises",
       "1000+ vocabulary words",
       "200+ reading passages",
       "Full listening module with transcripts",
@@ -93,36 +116,36 @@ const pricingPlans = [
       "Full practice tests",
       "Detailed progress analytics",
       "Ad-free experience",
-      "Personalized learning path",
       "Priority support",
     ],
     cta: "Subscribe Now",
     highlighted: true,
   },
   {
-    name: "Professional",
+    name: "Premium",
     price: "$19.99",
     period: "/month",
-    description: "For test preparation",
+    description: "For test preparation and tutoring",
     features: [
-      "Everything in Premium",
-      "1-on-1 tutoring sessions",
+      "Everything in Pro",
+      "1-on-1 tutoring sessions (2/month)",
       "Customized study plans",
-      "Mock exam review",
+      "Monthly progress reports",
+      "Exam prep guides",
       "Native speaker Q&A",
       "Certificate of completion",
       "Lifetime access to materials",
     ],
-    cta: "Start Professional",
+    cta: "Start Premium",
     highlighted: false,
   },
 ];
 
 const stats = [
-  { value: "500+", label: "Practice Questions", icon: <Star className="h-5 w-5 text-chart-3" /> },
-  { value: "3", label: "Difficulty Levels", icon: <Target className="h-5 w-5 text-primary" /> },
-  { value: "24/7", label: "Anytime Access", icon: <Clock className="h-5 w-5 text-chart-2" /> },
-  { value: "Real-time", label: "Progress Analytics", icon: <TrendingUp className="h-5 w-5 text-chart-4" /> },
+  { value: "500+", label: "Practice Questions", icon: <Star className="h-5 w-5" /> },
+  { value: "3", label: "Difficulty Levels", icon: <Target className="h-5 w-5" /> },
+  { value: "24/7", label: "Anytime Access", icon: <Clock className="h-5 w-5" /> },
+  { value: "Real-time", label: "Progress Analytics", icon: <TrendingUp className="h-5 w-5" /> },
 ];
 
 const benefits = [
@@ -193,7 +216,7 @@ export default function Home() {
                   </Button>
                 </Link>
                 <Link href="/login" className="w-full sm:w-auto">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-10 py-7 rounded-xl glass hover:bg-background/10 transition-all duration-300 font-semibold">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-10 py-7 rounded-xl glass hover:bg-white/10 transition-all duration-300 font-semibold">
                     Sign In
                   </Button>
                 </Link>
@@ -229,8 +252,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Exercise Types Section */}
-      <section className="relative py-24 md:py-36 overflow-hidden bg-background">
+      {/* Exercise Types Section - All integrated */}
+      <section className="relative py-24 md:py-36 overflow-hidden bg-white">
         <div className="absolute inset-0 mesh-gradient opacity-40" />
         <div className="container relative mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-20">
@@ -239,7 +262,7 @@ export default function Home() {
               <span className="text-sm font-semibold">Complete Learning Platform</span>
             </div>
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 fade-in-up text-foreground">
-              Learn English with <span className="text-gradient">6 Comprehensive Skills</span>
+              Learn English with <span className="text-gradient">8 Comprehensive Skills</span>
             </h2>
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed fade-in-up">
               Master grammar, vocabulary, reading, listening, speaking and practice tests all in one platform
@@ -248,26 +271,29 @@ export default function Home() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {exerciseTypes.map((exercise, index) => (
-              <Card
-                key={index}
-                className="group premium-card hover-lift overflow-hidden stagger-in"
-                style={{ animationDelay: `${index * 0.12}s` }}
-              >
-                <CardContent className="p-8 relative z-10">
-                  <div className={`inline-flex ${exercise.bgColor} p-4 rounded-xl mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                    {exercise.icon}
-                  </div>
-                  <h3 className="text-xl font-bold mb-3">{exercise.title}</h3>
-                  <p className="text-muted-foreground leading-relaxed">{exercise.description}</p>
-                </CardContent>
-              </Card>
+              <Link key={index} href={exercise.href} className="block">
+                <Card
+                  className="group premium-card hover-lift overflow-hidden stagger-in h-full cursor-pointer transition-all duration-300"
+                  style={{ animationDelay: `${index * 0.12}s` }}
+                >
+                  <CardContent className="p-8 relative z-10">
+                    <div className={`inline-flex ${exercise.bgColor} p-4 rounded-xl mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                      <div className={exercise.color}>
+                        {exercise.icon}
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold mb-3">{exercise.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">{exercise.description}</p>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
       {/* Pricing Section */}
-      <section className="relative py-24 md:py-36 bg-background overflow-hidden">
+      <section className="relative py-24 md:py-36 bg-white overflow-hidden">
         <div className="absolute inset-0 mesh-gradient opacity-30" />
         <div className="container relative mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-20">
@@ -315,7 +341,7 @@ export default function Home() {
                       {plan.period && <span className="text-muted-foreground">{plan.period}</span>}
                     </div>
 
-                    <Link href="/register" className="block mb-8 w-full">
+                    <Link href="/pricing" className="block mb-8 w-full">
                       <Button
                         className={`w-full ${
                           plan.highlighted
