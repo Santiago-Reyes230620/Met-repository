@@ -646,7 +646,7 @@ export default function ListeningPage() {
         setShowPaywall(true);
       }
     }
-  }, [authLoading, user, subLoading, router]);
+  }, [authLoading, user, subLoading, router, hasAccess]);
 
   // Cleanup speech on unmount
   useEffect(() => {

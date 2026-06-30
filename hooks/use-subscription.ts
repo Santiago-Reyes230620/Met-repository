@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/client";
 
@@ -64,7 +64,7 @@ export function useSubscription() {
     fetchSubscription();
   }, [user]);
 
-  const hasAccess = (feature: string): boolean => {
+  const hasAccess = useCallback((feature: string): boolean => {
     if (!subscription) return false;
 
     const features: Record<string, string[]> = {
@@ -74,19 +74,22 @@ export function useSubscription() {
     };
 
     return features[subscription.plan_id]?.includes(feature) || false;
-  };
+  }, [subscription]);
 
-  const isPremium = (): boolean => subscription?.plan_id === "premium";
-  const isPro = (): boolean => subscription?.plan_id === "pro";
-  const isFree = (): boolean => subscription?.plan_id === "free";
+  const isPremium = useCallback((): boolean => subscription?.plan_id === "premium", [subscription]);
+  const isPro = useCallback((): boolean => subscription?.plan_id === "pro", [subscription]);
+  const isFree = useCallback((): boolean => subscription?.plan_id === "free", [subscription]);
 
-  return {
-    subscription,
-    loading,
-    error,
-    hasAccess,
-    isPremium,
-    isPro,
-    isFree,
-  };
+  return useMemo(
+    () => ({
+      subscription,
+      loading,
+      error,
+      hasAccess,
+      isPremium,
+      isPro,
+      isFree,
+    }),
+    [subscription, loading, error, hasAccess, isPremium, isPro, isFree]
+  );
 }

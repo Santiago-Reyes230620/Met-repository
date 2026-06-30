@@ -1279,7 +1279,7 @@ export default function DailyQuizPage() {
                 <Flame className="h-4 w-4 text-primary" />
                 <span className="text-sm font-semibold text-primary">Daily Challenge</span>
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Today's Quiz</h1>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">Today&apos;s Quiz</h1>
               <p className="text-lg text-muted-foreground">
                 {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
               </p>
@@ -1655,7 +1655,7 @@ export default function DailyQuizPage() {
             <div className="space-y-3">
               <Button onClick={handleRetakeQuiz} className="w-full h-12" variant="outline">
                 <Flame className="h-4 w-4 mr-2" />
-                Retake Today's Quiz
+                Retake Today&apos;s Quiz
               </Button>
               <Button onClick={() => router.push("/dashboard")} className="w-full h-12 bg-gradient-to-r from-primary to-chart-2">
                 Back to Dashboard

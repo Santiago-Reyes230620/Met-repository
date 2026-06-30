@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -442,6 +442,17 @@ export default function SpeakingPage() {
     };
   }, []);
 
+  const resetExerciseState = useCallback(() => {
+    setTranscript("");
+    setDetectedKeywords([]);
+    setScore(null);
+    setShowResult(false);
+    setError(null);
+    if (recognitionRef.current && isRecording) {
+      recognitionRef.current.abort();
+    }
+  }, [isRecording]);
+
   // Filter exercises when category/difficulty changes
   useEffect(() => {
     let filtered = speakingExercises;
@@ -454,7 +465,7 @@ export default function SpeakingPage() {
     setFilteredExercises(filtered);
     setCurrentIndex(0);
     resetExerciseState();
-  }, [selectedCategory, difficulty]);
+  }, [selectedCategory, difficulty, resetExerciseState]);
 
   // Auth & access check - separate from filtering
   useEffect(() => {
@@ -465,7 +476,7 @@ export default function SpeakingPage() {
         setShowPaywall(true);
       }
     }
-  }, [authLoading, user, subLoading, router]);
+  }, [authLoading, user, subLoading, router, hasAccess]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -475,17 +486,6 @@ export default function SpeakingPage() {
       }
     };
   }, []);
-
-  const resetExerciseState = () => {
-    setTranscript("");
-    setDetectedKeywords([]);
-    setScore(null);
-    setShowResult(false);
-    setError(null);
-    if (recognitionRef.current && isRecording) {
-      recognitionRef.current.abort();
-    }
-  };
 
   const startRecording = () => {
     if (!recognitionRef.current) {
@@ -989,7 +989,7 @@ export default function SpeakingPage() {
                   <p>Speak naturally and at a comfortable pace.</p>
                   <p>Use complete sentences when possible.</p>
                   <p>Include key vocabulary from the exercise.</p>
-                  <p>Don't worry about perfect pronunciation - focus on clarity.</p>
+                  <p>Do not worry about perfect pronunciation - focus on clarity.</p>
                   <p>Practice regularly to improve fluency.</p>
                 </CardContent>
               </Card>

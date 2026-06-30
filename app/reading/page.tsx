@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase, ReadingPassage, ReadingQuestion } from "@/lib/supabase/client";
@@ -39,15 +39,7 @@ export default function ReadingPage() {
   const [loading, setLoading] = useState(true);
   const [difficulty, setDifficulty] = useState<string>("all");
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/login");
-    } else if (!authLoading && user) {
-      fetchPassages();
-    }
-  }, [user, authLoading, difficulty, router]);
-
-  const fetchPassages = async () => {
+  const fetchPassages = useCallback(async () => {
     setLoading(true);
     try {
       let query = supabase.from("reading_passages").select("*");
@@ -84,7 +76,15 @@ export default function ReadingPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [difficulty]);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    } else if (!authLoading && user) {
+      fetchPassages();
+    }
+  }, [user, authLoading, router, fetchPassages]);
 
   const handleAnswer = (answer: string) => {
     if (showResult) return;

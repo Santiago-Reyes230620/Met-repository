@@ -51,30 +51,7 @@ export default function GrammarPage() {
   const [difficulty, setDifficulty] = useState<string>("all");
   const [showDailyLimit, setShowDailyLimit] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/login");
-    } else if (!authLoading && user && !subLoading) {
-      if (!hasAccess("grammar")) {
-        router.push("/pricing");
-      } else {
-        fetchExercises();
-      }
-    }
-  }, [user, authLoading, selectedCategory, difficulty, router, subLoading]);
-
-  // Separate effect for checking daily limit
-  const checkDailyLimit = useCallback(() => {
-    if (!loading && isFree() && !canContinue) {
-      setShowDailyLimit(true);
-    }
-  }, [loading, isFree, canContinue]);
-
-  useEffect(() => {
-    checkDailyLimit();
-  }, [checkDailyLimit]);
-
-  const fetchExercises = async () => {
+  const fetchExercises = useCallback(async () => {
     setLoading(true);
     try {
       let query = supabase.from("grammar_exercises").select("*");
@@ -101,7 +78,30 @@ export default function GrammarPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory, difficulty]);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    } else if (!authLoading && user && !subLoading) {
+      if (!hasAccess("grammar")) {
+        router.push("/pricing");
+      } else {
+        fetchExercises();
+      }
+    }
+  }, [user, authLoading, router, subLoading, hasAccess, fetchExercises]);
+
+  // Separate effect for checking daily limit
+  const checkDailyLimit = useCallback(() => {
+    if (!loading && isFree() && !canContinue) {
+      setShowDailyLimit(true);
+    }
+  }, [loading, isFree, canContinue]);
+
+  useEffect(() => {
+    checkDailyLimit();
+  }, [checkDailyLimit]);
 
   const handleAnswer = (answer: string) => {
     if (showResult) return;

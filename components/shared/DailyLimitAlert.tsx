@@ -43,7 +43,7 @@ export function DailyLimitAlert({
           </div>
           <AlertDialogTitle className="text-center">Daily Limit Reached</AlertDialogTitle>
           <AlertDialogDescription className="text-center pt-2">
-            You've used all {5} of your free daily exercises. Come back tomorrow or upgrade to continue practicing now!
+            You&apos;ve used all {5} of your free daily exercises. Come back tomorrow or upgrade to continue practicing now!
           </AlertDialogDescription>
         </AlertDialogHeader>
 

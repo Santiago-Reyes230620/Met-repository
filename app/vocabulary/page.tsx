@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase, VocabularyExercise } from "@/lib/supabase/client";
@@ -36,15 +36,7 @@ export default function VocabularyPage() {
   const [loading, setLoading] = useState(true);
   const [difficulty, setDifficulty] = useState<string>("all");
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/login");
-    } else if (!authLoading && user) {
-      fetchExercises();
-    }
-  }, [user, authLoading, difficulty, router]);
-
-  const fetchExercises = async () => {
+  const fetchExercises = useCallback(async () => {
     setLoading(true);
     try {
       let query = supabase.from("vocabulary_exercises").select("*");
@@ -67,7 +59,15 @@ export default function VocabularyPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [difficulty]);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    } else if (!authLoading && user) {
+      fetchExercises();
+    }
+  }, [user, authLoading, router, fetchExercises]);
 
   const handleAnswer = (answer: string) => {
     if (showResult) return;
