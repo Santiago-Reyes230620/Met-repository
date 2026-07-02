@@ -3,9 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/hooks/use-subscription";
+import { useDailyLimit } from "@/hooks/use-daily-limit";
 import { supabase, ReadingPassage, ReadingQuestion } from "@/lib/supabase/client";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
+import { PaywallAlert } from "@/components/shared/PaywallAlert";
+import { DailyLimitAlert } from "@/components/shared/DailyLimitAlert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -27,6 +31,10 @@ import {
 
 export default function ReadingPage() {
   const { user, loading: authLoading } = useAuth();
+  const { subscription, loading: subLoading, hasAccess, isFree } = useSubscription();
+  const { dailyCount, canContinue, getRemainingExercises, getTimeUntilReset, incrementDailyCount, DAILY_FREE_LIMIT } = useDailyLimit(isFree());
+  const [showDailyLimit, setShowDailyLimit] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   const router = useRouter();
 
   const [passages, setPassages] = useState<(ReadingPassage & { questions: ReadingQuestion[] })[]>([]);
@@ -48,7 +56,7 @@ export default function ReadingPage() {
         query = query.eq("difficulty", difficulty);
       }
 
-      const { data: passagesData, error: passagesError } = await query.limit(5);
+      const { data: passagesData, error: passagesError } = await query.limit(15);
 
       if (passagesError) throw passagesError;
 
@@ -81,18 +89,37 @@ export default function ReadingPage() {
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login");
-    } else if (!authLoading && user) {
-      fetchPassages();
+    } else if (!authLoading && user && !subLoading) {
+      if (!hasAccess("reading")) {
+        setShowPaywall(true);
+      } else {
+        fetchPassages();
+      }
     }
-  }, [user, authLoading, router, fetchPassages]);
+  }, [user, authLoading, router, fetchPassages, subLoading, hasAccess]);
+
+  useEffect(() => {
+    if (!authLoading && !subLoading && isFree() && !canContinue) {
+      setShowDailyLimit(true);
+    }
+  }, [authLoading, subLoading, canContinue, isFree]);
 
   const handleAnswer = (answer: string) => {
     if (showResult) return;
     setSelectedAnswer(answer);
   };
 
-  const checkAnswer = () => {
+  const checkAnswer = async () => {
     if (!selectedAnswer) return;
+
+    if (isFree() && !canContinue) {
+      setShowDailyLimit(true);
+      return;
+    }
+
+    if (isFree()) {
+      await incrementDailyCount();
+    }
 
     setShowResult(true);
     setAnsweredCount((prev) => prev + 1);
@@ -174,9 +201,14 @@ export default function ReadingPage() {
               <span className="text-foreground">Reading Practice</span>
             </div>
             <h1 className="text-3xl font-bold mb-2">Reading Comprehension</h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-3">
               Improve your reading skills with passages and comprehension questions
             </p>
+            {!loading && passages.length > 0 && (
+              <div className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+                {passages.length}+ reading passages loaded for practice
+              </div>
+            )}
           </div>
 
           <div className="grid lg:grid-cols-[280px_1fr] gap-6">
@@ -383,6 +415,21 @@ export default function ReadingPage() {
           </div>
         </div>
       </main>
+
+      {isFree() && (
+        <DailyLimitAlert
+          isOpen={showDailyLimit}
+          remaining={getRemainingExercises()}
+          limit={DAILY_FREE_LIMIT}
+          hoursUntilReset={getTimeUntilReset().hours}
+          minutesUntilReset={getTimeUntilReset().minutes}
+          onClose={() => setShowDailyLimit(false)}
+        />
+      )}
+
+      {showPaywall && (
+        <PaywallAlert isOpen={showPaywall} feature="Reading" plan="pro" onClose={() => setShowPaywall(false)} />
+      )}
 
       <Footer />
     </div>

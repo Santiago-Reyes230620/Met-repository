@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { BookOpen, GraduationCap, LogOut, User, BarChart3, Menu, X } from "lucide-react";
+import { BookOpen, GraduationCap, LogOut, User, BarChart3, Menu, X, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -88,6 +88,51 @@ export function Navbar() {
               Reading
             </Button>
           </Link>
+          <Link href="/listening">
+            <Button
+              onClick={() => mobile && setIsOpen(false)}
+              variant="ghost"
+              className={`${mobile ? "w-full justify-start" : ""} text-base`}
+            >
+              Listening
+            </Button>
+          </Link>
+          <Link href="/speaking">
+            <Button
+              onClick={() => mobile && setIsOpen(false)}
+              variant="ghost"
+              className={`${mobile ? "w-full justify-start" : ""} text-base`}
+            >
+              Speaking
+            </Button>
+          </Link>
+          <Link href="/writing">
+            <Button
+              onClick={() => mobile && setIsOpen(false)}
+              variant="ghost"
+              className={`${mobile ? "w-full justify-start" : ""} text-base`}
+            >
+              Writing
+            </Button>
+          </Link>
+          <Link href="/quiz">
+            <Button
+              onClick={() => mobile && setIsOpen(false)}
+              variant="ghost"
+              className={`${mobile ? "w-full justify-start" : ""} text-base`}
+            >
+              Quiz
+            </Button>
+          </Link>
+          <Link href="/pricing">
+            <Button
+              onClick={() => mobile && setIsOpen(false)}
+              variant="ghost"
+              className={`${mobile ? "w-full justify-start" : ""} text-base`}
+            >
+              Pricing
+            </Button>
+          </Link>
         </>
       ) : null}
     </>
@@ -103,7 +148,7 @@ export function Navbar() {
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 md:h-20 items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2 group">
+          <Link href="/dashboard" className="flex items-center space-x-2 group">
             <div className="relative">
               <GraduationCap className="h-8 w-8 text-primary group-hover:scale-110 transition-transform duration-300" />
               <BookOpen className="absolute -bottom-1 -right-1 h-4 w-4 text-chart-2 group-hover:rotate-12 transition-transform duration-300" />
@@ -165,13 +210,11 @@ export function Navbar() {
               {/* Desktop User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild className="hidden md:block">
-                  <Button variant="ghost" className="relative h-11 w-11 rounded-full hover:scale-105 transition-transform">
-                    <Avatar className="h-11 w-11 border-2 border-primary/20">
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-chart-2 text-primary-foreground font-semibold">
-                        {getInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
+                  <Avatar className="h-11 w-11 rounded-full border-2 border-primary/20 hover:scale-105 transition-transform">
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-chart-2 text-primary-foreground font-semibold">
+                      {getInitials()}
+                    </AvatarFallback>
+                  </Avatar>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-60" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal p-3">

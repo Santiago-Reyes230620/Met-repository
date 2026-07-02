@@ -4,14 +4,16 @@ import { supabase } from "@/lib/supabase/client";
 
 const DAILY_FREE_LIMIT = 5; // 5 exercises per day for free users
 
-export function useDailyLimit() {
+export function useDailyLimit(isFreeUser = true) {
   const { user } = useAuth();
   const [dailyCount, setDailyCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [canContinue, setCanContinue] = useState(true);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !isFreeUser) {
+      setDailyCount(0);
+      setCanContinue(true);
       setLoading(false);
       return;
     }
@@ -40,7 +42,7 @@ export function useDailyLimit() {
     };
 
     fetchDailyCount();
-  }, [user]);
+  }, [user, isFreeUser]);
 
   const incrementDailyCount = async () => {
     if (!user) return;

@@ -3,9 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/hooks/use-subscription";
+import { useDailyLimit } from "@/hooks/use-daily-limit";
 import { supabase, VocabularyExercise } from "@/lib/supabase/client";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
+import { DailyLimitAlert } from "@/components/shared/DailyLimitAlert";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -25,6 +28,9 @@ import {
 
 export default function VocabularyPage() {
   const { user, loading: authLoading } = useAuth();
+  const { subscription, loading: subLoading, hasAccess, isFree } = useSubscription();
+  const { dailyCount, canContinue, getRemainingExercises, getTimeUntilReset, incrementDailyCount, DAILY_FREE_LIMIT } = useDailyLimit(isFree());
+  const [showDailyLimit, setShowDailyLimit] = useState(false);
   const router = useRouter();
 
   const [exercises, setExercises] = useState<VocabularyExercise[]>([]);
@@ -45,7 +51,7 @@ export default function VocabularyPage() {
         query = query.eq("difficulty", difficulty);
       }
 
-      const { data, error } = await query.limit(10);
+      const { data, error } = await query.limit(30);
 
       if (error) throw error;
       setExercises(data || []);
@@ -64,18 +70,37 @@ export default function VocabularyPage() {
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login");
-    } else if (!authLoading && user) {
-      fetchExercises();
+    } else if (!authLoading && user && !subLoading) {
+      if (!hasAccess("vocabulary")) {
+        router.push("/pricing");
+      } else {
+        fetchExercises();
+      }
     }
-  }, [user, authLoading, router, fetchExercises]);
+  }, [user, authLoading, router, fetchExercises, subLoading, hasAccess]);
+
+  useEffect(() => {
+    if (!authLoading && !subLoading && isFree() && !canContinue) {
+      setShowDailyLimit(true);
+    }
+  }, [authLoading, subLoading, canContinue, isFree]);
 
   const handleAnswer = (answer: string) => {
     if (showResult) return;
     setSelectedAnswer(answer);
   };
 
-  const checkAnswer = () => {
+  const checkAnswer = async () => {
     if (!selectedAnswer || !exercises[currentIndex]) return;
+
+    if (isFree() && !canContinue) {
+      setShowDailyLimit(true);
+      return;
+    }
+
+    if (isFree()) {
+      await incrementDailyCount();
+    }
 
     const isCorrect = selectedAnswer === exercises[currentIndex].correct_answer;
     setShowResult(true);
@@ -137,9 +162,14 @@ export default function VocabularyPage() {
               <span className="text-foreground">Vocabulary Practice</span>
             </div>
             <h1 className="text-3xl font-bold mb-2">Vocabulary Builder</h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-3">
               Expand your word knowledge with contextual examples and definitions
             </p>
+            {!loading && exercises.length > 0 && (
+              <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+                {exercises.length}+ vocabulary exercises ready to practice
+              </div>
+            )}
           </div>
 
           <div className="grid lg:grid-cols-[280px_1fr] gap-6">
@@ -195,6 +225,11 @@ export default function VocabularyPage() {
                 </Card>
               ) : (
                 <>
+                  {isFree() && (
+                    <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                      Free plan: {getRemainingExercises()} of {DAILY_FREE_LIMIT} exercises left today.
+                    </div>
+                  )}
                   {/* Progress Bar */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">

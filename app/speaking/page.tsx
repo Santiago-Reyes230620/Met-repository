@@ -590,6 +590,18 @@ export default function SpeakingPage() {
 
   if (!user) return null;
 
+  if (showPaywall) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-card">
+        <Navbar />
+        <main className="container mx-auto px-4 py-12">
+          <PaywallAlert isOpen={showPaywall} feature="Speaking" plan="pro" onClose={() => setShowPaywall(false)} />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   const currentExercise = filteredExercises[currentIndex];
   if (!currentExercise) {
     return (
@@ -999,8 +1011,6 @@ export default function SpeakingPage() {
       </main>
 
       <Footer />
-
-      <PaywallAlert isOpen={showPaywall} feature="Speaking" plan="pro" onClose={() => setShowPaywall(false)} />
     </div>
   );
 }

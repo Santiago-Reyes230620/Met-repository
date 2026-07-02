@@ -30,7 +30,7 @@ const exerciseTypes = [
   {
     icon: <BookOpen className="h-8 w-8" />,
     title: "Grammar",
-    description: "500+ exercises covering all grammar topics",
+    description: "2500+ exercises covering all grammar topics",
     color: "text-blue-500",
     bgColor: "bg-blue-500/10",
     href: "/grammar",
@@ -38,7 +38,7 @@ const exerciseTypes = [
   {
     icon: <MessageSquareText className="h-8 w-8" />,
     title: "Vocabulary",
-    description: "1000+ words with context and examples",
+    description: "4000+ words with context and examples",
     color: "text-emerald-500",
     bgColor: "bg-emerald-500/10",
     href: "/vocabulary",
@@ -46,7 +46,7 @@ const exerciseTypes = [
   {
     icon: <FileText className="h-8 w-8" />,
     title: "Reading",
-    description: "200+ passages with comprehension questions",
+    description: "500+ passages with comprehension questions",
     color: "text-amber-500",
     bgColor: "bg-amber-500/10",
     href: "/reading",
@@ -54,7 +54,7 @@ const exerciseTypes = [
   {
     icon: <Headphones className="h-8 w-8" />,
     title: "Listening",
-    description: "Native speaker audio with transcripts",
+    description: "300+ audio drills with native speakers",
     color: "text-rose-500",
     bgColor: "bg-rose-500/10",
     href: "/listening",
@@ -62,7 +62,7 @@ const exerciseTypes = [
   {
     icon: <Zap className="h-8 w-8" />,
     title: "Speaking",
-    description: "Speech recognition with pronunciation feedback",
+    description: "300+ speech drills with feedback",
     color: "text-teal-500",
     bgColor: "bg-teal-500/10",
     href: "/speaking",
@@ -70,15 +70,15 @@ const exerciseTypes = [
   {
     icon: <PenTool className="h-8 w-8" />,
     title: "Writing",
-    description: "Guided writing exercises with grammar checks",
+    description: "250+ guided writing exercises",
     color: "text-violet-500",
     bgColor: "bg-violet-500/10",
     href: "/writing",
   },
   {
     icon: <Award className="h-8 w-8" />,
-    title: "Practice Tests",
-    description: "Full-length exams with detailed analysis",
+    title: "MET Quiz",
+    description: "Real MET-style 40-question quiz with instant scoring",
     color: "text-cyan-500",
     bgColor: "bg-cyan-500/10",
     href: "/quiz",
@@ -88,41 +88,44 @@ const exerciseTypes = [
 const pricingPlans = [
   {
     name: "Free",
+    id: "free",
     price: "$0",
     description: "Get started with basics",
     features: [
-      "5 daily exercises",
-      "100+ grammar exercises",
-      "200+ vocabulary words",
-      "5 reading passages",
+      "30 daily exercises",
+      "1200+ grammar exercises",
+      "1000+ vocabulary words",
+      "25 reading passages",
       "Limited listening exercises",
       "Basic progress tracking",
     ],
-    cta: "Get Started",
+    cta: "Try Free",
     highlighted: false,
   },
   {
     name: "Pro",
+    id: "pro",
     price: "$9.99",
     period: "/month",
     description: "Best for serious learners",
     features: [
       "Unlimited daily exercises",
-      "All grammar exercises",
-      "1000+ vocabulary words",
-      "200+ reading passages",
+      "2500+ grammar exercises",
+      "4500+ vocabulary words",
+      "500+ reading passages",
       "Full listening module with transcripts",
       "Speaking practice with AI feedback",
-      "Full practice tests",
+      "MET-style practice tests",
       "Detailed progress analytics",
       "Ad-free experience",
       "Priority support",
     ],
-    cta: "Subscribe Now",
+    cta: "Get Pro",
     highlighted: true,
   },
   {
     name: "Premium",
+    id: "premium",
     price: "$19.99",
     period: "/month",
     description: "For test preparation and tutoring",
@@ -136,7 +139,7 @@ const pricingPlans = [
       "Certificate of completion",
       "Lifetime access to materials",
     ],
-    cta: "Start Premium",
+    cta: "Go Premium",
     highlighted: false,
   },
 ];
@@ -252,8 +255,44 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="relative py-20 md:py-24 bg-card/80 border-t border-border/10 overflow-hidden">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-[0.95fr_1.05fr] gap-10 items-center rounded-[2rem] border border-border bg-background/90 p-10 shadow-xl">
+            <div>
+              <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-3 py-1 text-sm font-semibold mb-4">
+                MET Practice Quiz
+              </span>
+              <h2 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">
+                Practica un quiz estilo MET
+              </h2>
+              <p className="text-lg text-muted-foreground mb-8 max-w-2xl">
+                Realiza un examen de 40 preguntas con el formato Cambridge MET. Recibe puntuación inmediata, retroalimentación y resultados para mejorar tu preparación.
+              </p>
+              <Link href="/quiz" className="inline-flex">
+                <Button size="lg" className="bg-gradient-to-r from-primary via-chart-1 to-chart-2 hover:scale-105 rounded-3xl">
+                  Comenzar Quiz MET
+                </Button>
+              </Link>
+            </div>
+            <div className="grid gap-4">
+              {[
+                "40 preguntas de práctica MET",
+                "Retroalimentación con puntuación instantánea",
+                "Secciones de gramática, lectura y vocabulario",
+                "Perfecto para preparación de examen",
+              ].map((item) => (
+                <div key={item} className="flex gap-3 items-start rounded-3xl bg-background p-5 border border-border">
+                  <Check className="h-5 w-5 text-chart-2 mt-1" />
+                  <p className="text-foreground font-medium">{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Exercise Types Section - All integrated */}
-      <section className="relative py-24 md:py-36 overflow-hidden bg-white">
+      <section className="relative py-24 md:py-36 overflow-hidden bg">
         <div className="absolute inset-0 mesh-gradient opacity-40" />
         <div className="container relative mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-20">
@@ -293,7 +332,7 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section className="relative py-24 md:py-36 bg-white overflow-hidden">
+      <section className="relative py-24 md:py-36 bg overflow-hidden">
         <div className="absolute inset-0 mesh-gradient opacity-30" />
         <div className="container relative mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-20">
@@ -321,18 +360,18 @@ export default function Home() {
                 style={{ animationDelay: `${index * 0.15}s` }}
               >
                 {plan.highlighted && (
-                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-chart-2 to-chart-4 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                  <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-gradient-to-r from-chart-2 to-chart-4 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg shadow-chart-4/30">
                     Most Popular
                   </div>
                 )}
                 <Card
-                  className={`h-full premium-card hover-lift ${
+                  className={`h-full premium-card hover-lift overflow-visible ${
                     plan.highlighted
                       ? 'border-chart-2 shadow-lg'
                       : ''
                   }`}
                 >
-                  <CardContent className="p-8">
+                  <CardContent className={`p-8 ${plan.highlighted ? 'pt-12' : ''}`}>
                     <h3 className="text-2xl font-bold mb-2 text-foreground">{plan.name}</h3>
                     <p className="text-muted-foreground mb-6">{plan.description}</p>
 
@@ -341,17 +380,11 @@ export default function Home() {
                       {plan.period && <span className="text-muted-foreground">{plan.period}</span>}
                     </div>
 
-                    <Link href="/pricing" className="block mb-8 w-full">
-                      <Button
-                        className={`w-full ${
-                          plan.highlighted
-                            ? 'bg-gradient-to-r from-chart-2 to-chart-4 hover:scale-105'
-                            : 'bg-primary/10 text-primary hover:bg-primary/20'
-                        }`}
-                      >
+                    <Button asChild className={`w-full ${plan.highlighted ? 'bg-gradient-to-r from-chart-2 to-chart-4 hover:scale-105' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}>
+                      <Link href={`/pricing?plan=${plan.id}`}>
                         {plan.cta}
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
 
                     <div className="space-y-4">
                       {plan.features.map((feature, fIndex) => (

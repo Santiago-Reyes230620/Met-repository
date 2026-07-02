@@ -29,8 +29,15 @@ export function PaywallAlert({ isOpen, feature, plan, onClose }: PaywallAlertPro
   const price = plan === "pro" ? "$9.99" : "$19.99";
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className="max-w-md">
+    <AlertDialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+        }
+      }}
+    >
+      <AlertDialogContent>
         <AlertDialogHeader>
           <div className="flex items-center justify-center mb-4">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">

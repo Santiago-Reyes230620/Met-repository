@@ -37,7 +37,7 @@ const categories = [
 export default function GrammarPage() {
   const { user, loading: authLoading } = useAuth();
   const { subscription, loading: subLoading, hasAccess, isFree } = useSubscription();
-  const { dailyCount, canContinue, getRemainingExercises, getTimeUntilReset, incrementDailyCount } = useDailyLimit();
+  const { dailyCount, canContinue, getRemainingExercises, getTimeUntilReset, incrementDailyCount, DAILY_FREE_LIMIT } = useDailyLimit(isFree());
   const router = useRouter();
 
   const [exercises, setExercises] = useState<GrammarExercise[]>([]);
@@ -64,7 +64,7 @@ export default function GrammarPage() {
         query = query.eq("difficulty", difficulty);
       }
 
-      const { data, error } = await query.limit(10);
+      const { data, error } = await query.limit(30);
 
       if (error) throw error;
       setExercises(data || []);
@@ -177,9 +177,14 @@ export default function GrammarPage() {
               <span className="text-foreground">Grammar Practice</span>
             </div>
             <h1 className="text-3xl font-bold mb-2">Grammar Exercises</h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-3">
               Improve your grammar skills with interactive practice exercises
             </p>
+            {!loading && exercises.length > 0 && (
+              <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm text-primary">
+                {exercises.length}+ exercises loaded for practice
+              </div>
+            )}
           </div>
 
           <div className="grid lg:grid-cols-[280px_1fr] gap-6">
@@ -376,6 +381,7 @@ export default function GrammarPage() {
         <DailyLimitAlert
           isOpen={showDailyLimit}
           remaining={getRemainingExercises()}
+          limit={DAILY_FREE_LIMIT}
           hoursUntilReset={getTimeUntilReset().hours}
           minutesUntilReset={getTimeUntilReset().minutes}
           onClose={() => setShowDailyLimit(false)}

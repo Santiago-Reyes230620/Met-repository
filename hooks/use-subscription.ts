@@ -69,8 +69,8 @@ export function useSubscription() {
 
     const features: Record<string, string[]> = {
       free: ["grammar", "vocabulary", "reading"],
-      pro: ["grammar", "vocabulary", "reading", "listening", "speaking"],
-      premium: ["grammar", "vocabulary", "reading", "listening", "speaking", "quiz"],
+      pro: ["grammar", "vocabulary", "reading", "listening", "speaking", "writing", "quiz"],
+      premium: ["grammar", "vocabulary", "reading", "listening", "speaking", "writing", "quiz"],
     };
 
     return features[subscription.plan_id]?.includes(feature) || false;

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -26,10 +26,10 @@ const plans = [
     price: 0,
     description: "Perfect for getting started",
     features: [
-      { text: "100+ Grammar exercises", included: true },
-      { text: "200+ Vocabulary words", included: true },
-      { text: "5 Reading passages", included: true },
-      { text: "Limited Listening", included: true },
+      { text: "250+ Grammar exercises", included: true },
+      { text: "1000+ Vocabulary words", included: true },
+      { text: "15 Reading passages", included: true },
+      { text: "Limited Listening practice", included: true },
       { text: "Speaking Practice", included: false },
       { text: "Practice Tests", included: false },
       { text: "Progress Analytics", included: false },
@@ -46,8 +46,8 @@ const plans = [
     highlighted: true,
     features: [
       { text: "All Grammar exercises", included: true },
-      { text: "1000+ Vocabulary words", included: true },
-      { text: "200+ Reading passages", included: true },
+      { text: "2500+ Vocabulary words", included: true },
+      { text: "500+ Reading passages", included: true },
       { text: "Full Listening module", included: true },
       { text: "AI Speaking Practice", included: true },
       { text: "Practice Tests", included: true },
@@ -80,6 +80,9 @@ export default function PricingPage() {
   const { user, loading: authLoading } = useAuth();
   const { subscription, loading: subLoading } = useSubscription();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedPlan = searchParams.get("plan");
+  const planRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
@@ -148,6 +151,19 @@ export default function PricingPage() {
     }
   };
 
+  const selectedPlanObject = plans.find((plan) => plan.id === selectedPlan);
+
+  useEffect(() => {
+    if (selectedPlan && planRefs.current[selectedPlan]) {
+      planRefs.current[selectedPlan]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [selectedPlan]);
+
+  const getPlanButtonLabel = (plan: (typeof plans)[number]) => {
+    if (subscription?.plan_id === plan.id) return "Current Plan";
+    return plan.id === "free" ? "Use Free Plan" : `Choose ${plan.name}`;
+  };
+
   if (authLoading || subLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-card flex items-center justify-center">
@@ -162,6 +178,47 @@ export default function PricingPage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-card">
       <Navbar />
 
+      {selectedPlanObject ? (
+        <div className="sticky top-16 md:top-20 z-50 border-b border-border/10 bg-background/95 backdrop-blur-xl shadow-sm">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] font-semibold text-primary mb-1">Plan seleccionado</p>
+                <h2 className="text-xl sm:text-2xl font-bold">{selectedPlanObject.name}</h2>
+                <p className="text-sm text-muted-foreground max-w-2xl">
+                  Estás viendo este plan. Pulsa el botón para comprarlo o actualizar tu suscripción.
+                </p>
+              </div>
+              <div className="flex flex-col items-start gap-3 sm:items-end">
+                <div className="text-left sm:text-right">
+                  <p className="text-sm text-muted-foreground">Precio</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground">
+                    ${selectedPlanObject.price === 0 ? "0" : selectedPlanObject.price.toFixed(2)}{selectedPlanObject.price > 0 ? "/month" : ""}
+                  </p>
+                </div>
+                <Button
+                  onClick={() => selectedPlanObject && handleSubscribe(selectedPlanObject.id)}
+                  disabled={loading || subscription?.plan_id === selectedPlanObject.id}
+                  className="w-full max-w-xs bg-gradient-to-r from-primary to-chart-2"
+                >
+                  {subscription?.plan_id === selectedPlanObject.id ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Current Plan
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      {getPlanButtonLabel(selectedPlanObject)}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <main className="flex-1 py-12 md:py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -169,8 +226,7 @@ export default function PricingPage() {
             <p className="text-lg text-muted-foreground mb-8">
               Choose the perfect plan for your English learning journey
             </p>
-
-            <div className="flex items-center justify-center gap-4 mb-8">
+            <div className="inline-flex items-center justify-center gap-4 rounded-full border border-border/50 bg-background/70 px-4 py-3 shadow-sm">
               <span className={billingPeriod === "monthly" ? "font-semibold" : "text-muted-foreground"}>
                 Monthly
               </span>
@@ -200,13 +256,14 @@ export default function PricingPage() {
             {plans.map((plan) => (
               <Card
                 key={plan.id}
-                className={`relative ${
+                ref={(el) => (planRefs.current[plan.id] = el)}
+                className={`relative overflow-visible ${
                   plan.highlighted ? "border-primary shadow-lg md:scale-105" : ""
-                }`}
+                } ${plan.id === selectedPlan ? "ring-2 ring-primary/40 shadow-[0_0_0_1px_rgba(96,165,250,0.4)]" : ""}`}
               >
                 {plan.highlighted && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-gradient-to-r from-primary to-chart-2">
+                  <div className="absolute -top-7 left-1/2 -translate-x-1/2">
+                    <Badge className="bg-gradient-to-r from-primary to-chart-2 shadow-lg shadow-primary/30">
                       Most Popular
                     </Badge>
                   </div>
@@ -246,7 +303,7 @@ export default function PricingPage() {
                     ) : (
                       <>
                         <CreditCard className="h-4 w-4 mr-2" />
-                        {plan.price === 0 ? "Downgrade" : "Upgrade"}
+                        {getPlanButtonLabel(plan)}
                       </>
                     )}
                   </Button>

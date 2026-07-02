@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 interface DailyLimitAlertProps {
   isOpen: boolean;
   remaining: number;
+  limit: number;
   hoursUntilReset: number;
   minutesUntilReset: number;
   onClose: () => void;
@@ -21,6 +22,7 @@ interface DailyLimitAlertProps {
 export function DailyLimitAlert({
   isOpen,
   remaining,
+  limit,
   hoursUntilReset,
   minutesUntilReset,
   onClose,
@@ -43,11 +45,15 @@ export function DailyLimitAlert({
           </div>
           <AlertDialogTitle className="text-center">Daily Limit Reached</AlertDialogTitle>
           <AlertDialogDescription className="text-center pt-2">
-            You&apos;ve used all {5} of your free daily exercises. Come back tomorrow or upgrade to continue practicing now!
+            You&apos;ve used all {limit} of your free daily exercises. Come back tomorrow or upgrade to continue practicing now!
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="space-y-4 my-4">
+          <div className="rounded-lg p-4 bg-slate-50 border border-slate-200">
+            <p className="text-sm text-slate-600 mb-2">Free exercises used</p>
+            <p className="text-xl font-semibold text-slate-900">{limit - remaining} / {limit}</p>
+          </div>
           <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <Clock className="h-4 w-4 text-amber-500" />

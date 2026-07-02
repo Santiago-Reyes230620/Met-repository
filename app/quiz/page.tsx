@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
+import { PaywallAlert } from "@/components/shared/PaywallAlert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1138,6 +1139,7 @@ export default function DailyQuizPage() {
   const [dailyStreak, setDailyStreak] = useState(0);
   const [loading, setLoading] = useState(true);
   const [animateScore, setAnimateScore] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Separate auth effect
   useEffect(() => {
@@ -1146,13 +1148,16 @@ export default function DailyQuizPage() {
     }
   }, [authLoading, user, router]);
 
-  // Separate data initialization effect (no hasAccess dependency)
   useEffect(() => {
     if (!authLoading && user && !subLoading) {
+      if (!hasAccess("quiz")) {
+        setShowPaywall(true);
+        return;
+      }
       initializeQuiz();
       setLoading(false);
     }
-  }, [authLoading, user, subLoading]);
+  }, [authLoading, user, subLoading, hasAccess]);
 
   const initializeQuiz = () => {
     const today = new Date().toISOString().split("T")[0];
@@ -1251,6 +1256,20 @@ export default function DailyQuizPage() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-card flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  if (showPaywall) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-card">
+        <Navbar />
+        <main className="container mx-auto px-4 py-12">
+          <PaywallAlert isOpen={showPaywall} feature="Practice Tests" plan="pro" onClose={() => setShowPaywall(false)} />
+        </main>
+        <Footer />
       </div>
     );
   }

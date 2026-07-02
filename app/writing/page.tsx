@@ -570,7 +570,8 @@ const GRAMMAR_PATTERNS = [
 
 export default function WritingPage() {
   const { user, loading: authLoading } = useAuth();
-  const { hasAccess, isFree } = useSubscription();
+  const { hasAccess, isFree, loading: subLoading } = useSubscription();
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const [exercises, setExercises] = useState<WritingExercise[]>([]);
   const [filteredExercises, setFilteredExercises] = useState<WritingExercise[]>([]);
@@ -589,6 +590,12 @@ export default function WritingPage() {
       setLoading(false);
     }
   }, [authLoading]);
+
+  useEffect(() => {
+    if (!authLoading && !subLoading && user && isFree() && !hasAccess('writing')) {
+      setShowPaywall(true);
+    }
+  }, [authLoading, subLoading, user, isFree, hasAccess]);
 
   // Separate effect for data filtering (no hasAccess or isFree in dependencies)
   useEffect(() => {
@@ -723,11 +730,11 @@ export default function WritingPage() {
     return ['All', 'beginner', 'intermediate', 'advanced'];
   };
 
-  if (loading) {
+  if (authLoading || subLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-card">
         <Navbar />
-        <div className="flex items-center justify-center h-screen">
+        <div className="flex items-center justify-center flex-1">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading writing exercises...</p>
@@ -740,9 +747,9 @@ export default function WritingPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-card">
         <Navbar />
-        <div className="flex items-center justify-center h-screen">
+        <div className="flex items-center justify-center flex-1">
           <Card className="w-96">
             <CardHeader>
               <CardTitle>Sign In Required</CardTitle>
@@ -757,16 +764,16 @@ export default function WritingPage() {
     );
   }
 
-  if (isFree() && !hasAccess("writing")) {
+  if (showPaywall) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-card">
         <Navbar />
         <main className="container mx-auto px-4 py-12">
           <PaywallAlert
-            isOpen={true}
+            isOpen={showPaywall}
             feature="Writing"
             plan="pro"
-            onClose={() => {}}
+            onClose={() => setShowPaywall(false)}
           />
         </main>
         <Footer />
@@ -775,14 +782,14 @@ export default function WritingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-card">
       <Navbar />
 
       <main className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar with Progress */}
           <div className="lg:col-span-1">
-            <Card className="sticky top-24 bg-white/80 backdrop-blur">
+            <Card className="sticky top-24 bg-background/80 backdrop-blur border border-border/50">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-indigo-600" />
@@ -812,7 +819,7 @@ export default function WritingPage() {
                     <select
                       value={categoryFilter}
                       onChange={(e) => setCategoryFilter(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       {getCategories().map((cat) => (
                         <option key={cat} value={cat}>
@@ -827,7 +834,7 @@ export default function WritingPage() {
                     <select
                       value={difficultyFilter}
                       onChange={(e) => setDifficultyFilter(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       {getDifficulties().map((diff) => (
                         <option key={diff} value={diff}>
@@ -846,7 +853,7 @@ export default function WritingPage() {
             {!selectedExercise ? (
               <>
                 <div className="mb-8">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                  <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
                     <BookOpen className="h-8 w-8 text-indigo-600" />
                     Writing Practice
                   </h1>
@@ -859,7 +866,7 @@ export default function WritingPage() {
                   {filteredExercises.map((exercise) => (
                     <Card
                       key={exercise.id}
-                      className="cursor-pointer hover:shadow-lg transition-shadow bg-white/80 backdrop-blur border border-gray-200"
+                      className="cursor-pointer hover:shadow-lg transition-shadow bg-background/80 backdrop-blur border border-border/50"
                       onClick={() => {
                         setSelectedExercise(exercise);
                         setUserAnswer('');
@@ -925,7 +932,7 @@ export default function WritingPage() {
                 </Button>
 
                 {/* Exercise Card */}
-                <Card className="bg-white/90 backdrop-blur border border-gray-200">
+                <Card className="bg-background/90 backdrop-blur border border-border/50">
                   <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 pb-6">
                     <div className="flex items-start justify-between">
                       <div>
@@ -1048,7 +1055,7 @@ export default function WritingPage() {
 
                 {/* Evaluation Results */}
                 {evaluation && (
-                  <Card className="border-t-4 border-t-indigo-500 bg-white/90 backdrop-blur">
+                  <Card className="border-t-4 border-t-indigo-500 bg-background/90 backdrop-blur border border-border/50">
                     <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50">
                       <CardTitle>Evaluation Results</CardTitle>
                     </CardHeader>
