@@ -877,38 +877,37 @@ export default function ListeningPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Audio Player */}
-                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-6">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="flex items-center gap-3">
+                  <div className="bg-gradient-to-br from-primary/10 to-blue-500/10 border border-primary/30 rounded-xl p-8">
+                    <div className="flex flex-col items-center gap-6">
+                      <div className="flex items-center gap-4">
                         <Button
-                          variant="outline"
                           size="lg"
                           onClick={isPlaying ? stopAudio : playAudio}
-                          className="rounded-full h-14 w-14 transition-all duration-200"
+                          className="rounded-full h-16 w-16 bg-white hover:bg-gray-100 text-blue-600 shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-blue-600"
                         >
                           {isPlaying ? (
-                            <Pause className="h-6 w-6" />
+                            <Pause className="h-7 w-7" />
                           ) : (
-                            <Play className="h-6 w-6 ml-0.5" />
+                            <Play className="h-7 w-7 ml-0.5" />
                           )}
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={playAudio}
-                          className="text-muted-foreground"
+                          className="text-muted-foreground hover:text-primary"
                         >
-                          <RotateCcw className="h-4 w-4 mr-1" />
+                          <RotateCcw className="h-4 w-4 mr-2" />
                           Replay
                         </Button>
                         {isSpeaking && (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 ml-2">
                             {[...Array(5)].map((_, i) => (
                               <div
                                 key={i}
-                                className="w-1 bg-primary rounded-full animate-pulse"
+                                className="w-1.5 bg-gradient-to-t from-primary to-blue-500 rounded-full animate-pulse"
                                 style={{
-                                  height: `${Math.random() * 20 + 10}px`,
+                                  height: `${Math.random() * 24 + 12}px`,
                                   animationDelay: `${i * 0.15}s`,
                                 }}
                               />
@@ -917,7 +916,7 @@ export default function ListeningPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Volume2 className="h-4 w-4" />
+                        <Volume2 className="h-4 w-4 text-primary" />
                         <span>
                           {playCount === 0
                             ? "Click play to listen"

@@ -6,6 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: 'Michigan English Test Prep',
   description: 'Master the Michigan English Test with comprehensive grammar, vocabulary, and reading exercises',
   openGraph: {

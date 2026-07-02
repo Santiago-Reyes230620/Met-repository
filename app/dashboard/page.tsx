@@ -4,8 +4,17 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoal } from "@/hooks/use-goal";
+import { useBadges } from "@/hooks/use-badges";
+import { useMockExams } from "@/hooks/use-mock-exams";
+import { useWeeklyChallenges } from "@/hooks/use-weekly-challenges";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
+import { GoalProgress } from "@/components/GoalProgress";
+import { RecommendedExercises } from "@/components/RecommendedExercises";
+import { BadgesDisplay } from "@/components/BadgesDisplay";
+import { MockExamsDisplay } from "@/components/MockExamsDisplay";
+import { WeeklyChallengeDisplay } from "@/components/WeeklyChallengeDisplay";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/custom-progress";
@@ -94,6 +103,7 @@ const skillCards = [
 
 export default function DashboardPage() {
   const { user, profile, loading } = useAuth();
+  const { targetScore, deadline, overallScore, daysRemaining, progressPercentage } = useGoal();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
@@ -216,6 +226,30 @@ export default function DashboardPage() {
           {/* Main Content */}
           <div className={`grid lg:grid-cols-3 gap-6 md:gap-8 ${mounted ? 'slide-in-from-bottom' : 'opacity-0'}`} style={{ animationDelay: '0.2s' }}>
             <div className="lg:col-span-2 space-y-6 md:space-y-8">
+              {/* Goal Progress */}
+              <GoalProgress
+                targetScore={targetScore ?? undefined}
+                currentScore={overallScore}
+                deadline={deadline ?? undefined}
+                daysRemaining={daysRemaining}
+                progressPercentage={progressPercentage}
+                hasGoal={!!targetScore}
+              />
+
+              {/* Recommended Exercises */}
+              {profile && (
+                <RecommendedExercises
+                  scores={{
+                    grammar: profile.grammar_score || 0,
+                    vocabulary: profile.vocabulary_score || 0,
+                    reading: profile.reading_score || 0,
+                    listening: profile.listening_score || 0,
+                    speaking: profile.speaking_score || 0,
+                    writing: profile.writing_score || 0,
+                  }}
+                />
+              )}
+
               {/* Your Progress */}
               <Card className="premium-card">
                 <CardHeader className="pb-4">
