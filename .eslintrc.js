@@ -1,1 +1,4 @@
-module.exports = { extends: ['next/core-web-vitals'], ignorePatterns: ['dist'], };
+module.exports = {
+  extends: ["next/core-web-vitals"],
+  ignorePatterns: ["dist"],
+};

@@ -139,7 +139,7 @@ export default function AssessmentPage() {
                 </div>
                 <CardTitle className="text-3xl text-white">Assessment Complete!</CardTitle>
                 <CardDescription className="text-slate-300 text-base">
-                  Here's your baseline assessment
+                  Here&apos;s your baseline assessment
                 </CardDescription>
               </CardHeader>
 
@@ -198,7 +198,7 @@ export default function AssessmentPage() {
 
                 {/* Next Steps */}
                 <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-4 space-y-3">
-                  <h4 className="text-white font-semibold">What's Next?</h4>
+                  <h4 className="text-white font-semibold">What&apos;s Next?</h4>
                   <ul className="text-sm text-slate-300 space-y-2">
                     <li className="flex items-start gap-2">
                       <span className="text-blue-400 mt-1">✓</span>

@@ -28,7 +28,7 @@ export function WeeklyChallengeDisplay({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-slate-400 text-sm">Loading this week's challenge...</p>
+          <p className="text-slate-400 text-sm">Loading this week&apos;s challenge...</p>
         </CardContent>
       </Card>
     );

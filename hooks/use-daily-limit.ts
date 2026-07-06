@@ -61,7 +61,7 @@ export function useDailyLimit(isFreeUser = true) {
       if (existing) {
         // Update existing
         const newCount = existing.exercise_count + 1;
-        await supabase
+        const { error: updateError } = await supabase
           .from("daily_usage")
           .update({
             exercise_count: newCount,
@@ -69,17 +69,21 @@ export function useDailyLimit(isFreeUser = true) {
           })
           .eq("id", existing.id);
 
+        if (updateError) throw updateError;
+
         setDailyCount(newCount);
         setCanContinue(newCount < DAILY_FREE_LIMIT);
       } else {
         // Create new
-        await supabase.from("daily_usage").insert([
+        const { error: insertError } = await supabase.from("daily_usage").insert([
           {
             user_id: user.id,
             date: today,
             exercise_count: 1,
           },
         ]);
+
+        if (insertError) throw insertError;
 
         setDailyCount(1);
         setCanContinue(1 < DAILY_FREE_LIMIT);

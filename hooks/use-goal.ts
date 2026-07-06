@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { calculateOverallScoreFromProfile, calculateProgressPercentage } from '@/lib/goal-calculations';
 
 export const useGoal = () => {
   const { user, profile } = useAuth();
@@ -16,20 +17,8 @@ export const useGoal = () => {
       setTargetScore(profile.target_score || null);
       setDeadline(profile.target_deadline || null);
 
-      // Calculate overall score from profile
-      const scores = [
-        profile.grammar_score,
-        profile.vocabulary_score,
-        profile.reading_score,
-        profile.listening_score,
-        profile.speaking_score,
-        profile.writing_score,
-      ].filter(score => score > 0);
-
-      if (scores.length > 0) {
-        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-        setOverallScore(Math.round(avg * 10) / 10);
-      }
+      const computedOverallScore = calculateOverallScoreFromProfile(profile);
+      setOverallScore(computedOverallScore);
 
       // Calculate days remaining
       if (profile.target_deadline) {
@@ -40,10 +29,7 @@ export const useGoal = () => {
       }
 
       // Calculate progress percentage
-      if (profile.target_score && overallScore > 0) {
-        const progress = (overallScore / profile.target_score) * 100;
-        setProgressPercentage(Math.min(100, Math.round(progress)));
-      }
+      setProgressPercentage(calculateProgressPercentage(computedOverallScore, profile.target_score));
 
       setLoading(false);
     }

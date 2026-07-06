@@ -1,73 +1,60 @@
-# React + TypeScript + Vite
+# MET Practice App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicacion web para practicar el Michigan English Test (MET) con ejercicios interactivos y seguimiento de progreso.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Next.js 13 (App Router)
+- React 18 + TypeScript
+- Tailwind CSS + componentes UI en components/ui
+- Supabase (auth + base de datos)
 
-## React Compiler
+## Requisitos
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 18+
+- npm
+- Variables de entorno para Supabase
 
-## Expanding the ESLint configuration
+## Variables de entorno
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Crea un archivo .env local con:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+NEXT_PUBLIC_SUPABASE_URL=tu_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_supabase_anon_key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Tambien puedes copiar .env.example como base para configurar preview y produccion.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Scripts
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- npm run dev: inicia el servidor de desarrollo
+- npm run build: compila para produccion
+- npm run start: levanta el build de produccion
+- npm run lint: ejecuta lint con reglas de Next.js
+- npm run typecheck: valida tipos con TypeScript
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Estructura principal
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- app: rutas y paginas con App Router
+- components: componentes compartidos y UI
+- hooks: logica reutilizable de negocio
+- contexts: estado global (auth)
+- lib/supabase: cliente y tipos relacionados
+- supabase/migration: migraciones SQL
+
+## Estado actual
+
+- El limite diario para usuarios free esta aplicado en Grammar, Reading y Vocabulary.
+- El proyecto compila y pasa typecheck.
+
+## Checklist para publicar
+
+1. Ejecutar migraciones de Supabase en orden cronologico, incluyendo la de seguridad y RLS.
+2. Configurar variables de entorno en el proveedor de despliegue (Netlify).
+3. Verificar que CI pase en main: lint, typecheck, test y build.
+4. Probar flujo completo en preview: registro, login, practica y dashboard.
+5. Publicar a produccion.
+
+## Proximo paso recomendado
+
+Agregar pruebas automatizadas para hooks criticos como limite diario, suscripcion y progreso de metas.

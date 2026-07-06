@@ -111,6 +111,11 @@ export default function GrammarPage() {
   const checkAnswer = async () => {
     if (!selectedAnswer || !exercises[currentIndex]) return;
 
+    if (isFree() && !canContinue) {
+      setShowDailyLimit(true);
+      return;
+    }
+
     // Increment daily count for free users
     if (isFree()) {
       await incrementDailyCount();

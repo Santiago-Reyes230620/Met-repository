@@ -79,7 +79,7 @@ export function BadgesDisplay({ unlockedBadges, totalBadges = 10 }: BadgesDispla
 
         <div className="mt-4 p-3 bg-slate-700/50 rounded-lg border border-slate-600">
           <p className="text-xs text-slate-300">
-            <span className="font-semibold">Next Badge Tip:</span> Complete 10 exercises to unlock "First Steps"
+            <span className="font-semibold">Next Badge Tip:</span> Complete 10 exercises to unlock &quot;First Steps&quot;
           </p>
         </div>
       </CardContent>

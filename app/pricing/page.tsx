@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -76,7 +76,7 @@ const plans = [
   },
 ];
 
-export default function PricingPage() {
+function PricingPageContent() {
   const { user, loading: authLoading } = useAuth();
   const { subscription, loading: subLoading } = useSubscription();
   const router = useRouter();
@@ -361,5 +361,19 @@ export default function PricingPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-b from-background to-card flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <PricingPageContent />
+    </Suspense>
   );
 }

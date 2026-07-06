@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/client";
+import { planHasAccess } from "@/lib/subscription-access";
 
 export interface UserSubscription {
   id: string;
@@ -67,13 +68,7 @@ export function useSubscription() {
   const hasAccess = useCallback((feature: string): boolean => {
     if (!subscription) return false;
 
-    const features: Record<string, string[]> = {
-      free: ["grammar", "vocabulary", "reading"],
-      pro: ["grammar", "vocabulary", "reading", "listening", "speaking", "writing", "quiz"],
-      premium: ["grammar", "vocabulary", "reading", "listening", "speaking", "writing", "quiz"],
-    };
-
-    return features[subscription.plan_id]?.includes(feature) || false;
+    return planHasAccess(subscription.plan_id, feature);
   }, [subscription]);
 
   const isPremium = useCallback((): boolean => subscription?.plan_id === "premium", [subscription]);
