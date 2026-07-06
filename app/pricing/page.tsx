@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
-import { supabase } from "@/lib/supabase/client";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,7 +76,7 @@ const plans = [
 ];
 
 function PricingPageContent() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const { subscription, loading: subLoading } = useSubscription();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -99,51 +98,38 @@ function PricingPageContent() {
       return;
     }
 
+    if (!session?.access_token) {
+      setError("Your session is expired. Please sign in again.");
+      return;
+    }
+
+    if (planId === "free") {
+      router.push("/dashboard");
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
-      // Check if subscription exists
-      const { data: existing } = await supabase
-        .from("user_subscriptions")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          planId,
+          billingPeriod,
+        }),
+      });
 
-      if (existing) {
-        // Update existing subscription
-        const { error } = await supabase
-          .from("user_subscriptions")
-          .update({
-            plan_id: planId,
-            status: "active",
-            current_period_start: new Date().toISOString(),
-            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("user_id", user.id);
-
-        if (error) throw error;
-      } else {
-        // Create new subscription
-        const { error } = await supabase
-          .from("user_subscriptions")
-          .insert([
-            {
-              user_id: user.id,
-              plan_id: planId,
-              status: "active",
-              current_period_start: new Date().toISOString(),
-              current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            },
-          ]);
-
-        if (error) throw error;
+      const result = await response.json();
+      if (!response.ok || !result.url) {
+        throw new Error(result.error || "Failed to start checkout");
       }
 
-      // Small delay to allow subscription to be updated
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      router.push("/dashboard");
+      window.location.href = result.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to process subscription");
     } finally {
@@ -160,7 +146,8 @@ function PricingPageContent() {
   }, [selectedPlan]);
 
   const getPlanButtonLabel = (plan: (typeof plans)[number]) => {
-    if (subscription?.plan_id === plan.id) return "Current Plan";
+    const currentPlanId = subscription?.plan_id || "free";
+    if (currentPlanId === plan.id) return "Current Plan";
     return plan.id === "free" ? "Use Free Plan" : `Choose ${plan.name}`;
   };
 
@@ -198,10 +185,10 @@ function PricingPageContent() {
                 </div>
                 <Button
                   onClick={() => selectedPlanObject && handleSubscribe(selectedPlanObject.id)}
-                  disabled={loading || subscription?.plan_id === selectedPlanObject.id}
+                  disabled={loading || (subscription?.plan_id || "free") === selectedPlanObject.id}
                   className="w-full max-w-xs bg-gradient-to-r from-primary to-chart-2"
                 >
-                  {subscription?.plan_id === selectedPlanObject.id ? (
+                  {(subscription?.plan_id || "free") === selectedPlanObject.id ? (
                     <>
                       <Check className="h-4 w-4 mr-2" />
                       Current Plan
@@ -285,7 +272,7 @@ function PricingPageContent() {
                 <CardContent className="space-y-6">
                   <Button
                     onClick={() => handleSubscribe(plan.id)}
-                    disabled={loading || subscription?.plan_id === plan.id}
+                    disabled={loading || (subscription?.plan_id || "free") === plan.id}
                     className={`w-full ${
                       plan.highlighted ? "bg-gradient-to-r from-primary to-chart-2" : ""
                     }`}
@@ -295,7 +282,7 @@ function PricingPageContent() {
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Processing...
                       </>
-                    ) : subscription?.plan_id === plan.id ? (
+                    ) : (subscription?.plan_id || "free") === plan.id ? (
                       <>
                         <Check className="h-4 w-4 mr-2" />
                         Current Plan

@@ -10,6 +10,9 @@ export interface UserSubscription {
   status: "active" | "cancelled" | "expired";
   current_period_start: string;
   current_period_end: string;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+  stripe_price_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -36,24 +39,10 @@ export function useSubscription() {
 
         if (fetchError) throw fetchError;
 
-        if (!data) {
-          // Create default free subscription
-          const { data: newSub, error: createError } = await supabase
-            .from("user_subscriptions")
-            .insert([
-              {
-                user_id: user.id,
-                plan_id: "free",
-                status: "active",
-              },
-            ])
-            .select()
-            .single();
-
-          if (createError) throw createError;
-          setSubscription(newSub);
-        } else {
+        if (data) {
           setSubscription(data);
+        } else {
+          setSubscription(null);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch subscription");
@@ -66,14 +55,14 @@ export function useSubscription() {
   }, [user]);
 
   const hasAccess = useCallback((feature: string): boolean => {
-    if (!subscription) return false;
+    if (!subscription) return planHasAccess("free", feature);
 
     return planHasAccess(subscription.plan_id, feature);
   }, [subscription]);
 
   const isPremium = useCallback((): boolean => subscription?.plan_id === "premium", [subscription]);
   const isPro = useCallback((): boolean => subscription?.plan_id === "pro", [subscription]);
-  const isFree = useCallback((): boolean => subscription?.plan_id === "free", [subscription]);
+  const isFree = useCallback((): boolean => !subscription || subscription.plan_id === "free", [subscription]);
 
   return useMemo(
     () => ({
