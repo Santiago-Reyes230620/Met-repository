@@ -55,6 +55,70 @@ Tambien puedes copiar .env.example como base para configurar preview y produccio
 4. Probar flujo completo en preview: registro, login, practica y dashboard.
 5. Publicar a produccion.
 
+## Checklist final de release (CI/CD + Netlify + smoke test)
+
+### 1) CI en GitHub Actions
+
+El workflow existente en .github/workflows/ci.yml ya valida:
+
+- npm run lint
+- npm run typecheck
+- npm run test
+- npm run build
+
+Antes de release, confirma que el ultimo commit en main tenga CI en estado exitoso.
+
+### 2) Variables de entorno en Netlify
+
+Configura estas variables para Production y Preview:
+
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY
+- NEXT_PUBLIC_APP_URL
+- NEXT_PUBLIC_PAYMENT_PROVIDER
+- STRIPE_SECRET_KEY
+- NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+- STRIPE_WEBHOOK_SECRET
+- STRIPE_PRICE_ID_PRO_MONTHLY
+- STRIPE_PRICE_ID_PRO_YEARLY
+- STRIPE_PRICE_ID_PREMIUM_MONTHLY
+- STRIPE_PRICE_ID_PREMIUM_YEARLY
+- MERCADOPAGO_ACCESS_TOKEN
+- MERCADOPAGO_CURRENCY_ID
+- MERCADOPAGO_PRICE_PRO_MONTHLY
+- MERCADOPAGO_PRICE_PRO_YEARLY
+- MERCADOPAGO_PRICE_PREMIUM_MONTHLY
+- MERCADOPAGO_PRICE_PREMIUM_YEARLY
+
+### 3) Smoke test de preview
+
+Con el deploy de Preview listo, valida como minimo:
+
+1. Landing carga sin errores visuales ni de consola.
+2. Registro y login funcionan correctamente.
+3. Dashboard carga progreso, retos y objetivos.
+4. Rutas de practica (Grammar, Reading, Vocabulary, Writing) renderizan y permiten interaccion basica.
+5. Flujo de pricing inicia checkout con el proveedor activo.
+6. Endpoints API responden sin error 5xx:
+	- /api/stripe/checkout
+	- /api/stripe/webhook
+	- /api/mercadopago/checkout
+	- /api/mercadopago/webhook
+
+### 4) Smoke test de produccion
+
+Repite el mismo checklist en dominio productivo y valida:
+
+- NEXT_PUBLIC_APP_URL apuntando al dominio final.
+- Webhooks de Stripe/MercadoPago configurados con URLs de produccion.
+
+### 5) Cierre de release
+
+1. Crear tag de release en main.
+2. Publicar notas de release con fecha y cambios principales.
+3. Monitorear errores de runtime durante las primeras 24 horas.
+
 ## Proximo paso recomendado
 
 Agregar pruebas automatizadas para hooks criticos como limite diario, suscripcion y progreso de metas.
