@@ -4,6 +4,18 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
+function mapStripeSubscriptionStatus(status: string): "active" | "cancelled" | "expired" {
+  if (status === "active" || status === "trialing") {
+    return "active";
+  }
+
+  if (status === "canceled") {
+    return "cancelled";
+  }
+
+  return "expired";
+}
+
 function getSubscriptionPeriod(subscription: {
   items: {
     data: Array<{
@@ -109,12 +121,21 @@ export async function POST(request: NextRequest) {
       const firstItem = subscription.items.data[0];
       const priceId = firstItem?.price?.id || null;
       const planId = priceId ? getPlanIdFromPriceId(priceId) : null;
+      const normalizedStatus = mapStripeSubscriptionStatus(subscription.status);
       const period = getSubscriptionPeriod(subscription);
+
+      if (!planId) {
+        console.error("Stripe webhook: unknown price id on checkout completion", {
+          subscriptionId,
+          priceId,
+        });
+        return NextResponse.json({ received: true });
+      }
 
       await upsertSubscription({
         userId,
-        planId: planId || "pro",
-        status: subscription.status === "active" ? "active" : "cancelled",
+        planId: normalizedStatus === "active" ? planId : "free",
+        status: normalizedStatus,
         stripeCustomerId: customerId,
         stripeSubscriptionId: subscription.id,
         stripePriceId: priceId,
@@ -139,17 +160,20 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true });
       }
 
-      const status =
-        subscription.status === "active" || subscription.status === "trialing"
-          ? "active"
-          : subscription.status === "canceled"
-          ? "cancelled"
-          : "expired";
+      const status = mapStripeSubscriptionStatus(subscription.status);
       const period = getSubscriptionPeriod(subscription);
+
+      if (status === "active" && !planId) {
+        console.error("Stripe webhook: active subscription with unknown price id", {
+          subscriptionId: subscription.id,
+          priceId,
+        });
+        return NextResponse.json({ received: true });
+      }
 
       await upsertSubscription({
         userId: existing.user_id,
-        planId: status === "active" ? planId || "pro" : "free",
+        planId: status === "active" ? (planId as "pro" | "premium") : "free",
         status,
         stripeCustomerId: customerId,
         stripeSubscriptionId: subscription.id,
