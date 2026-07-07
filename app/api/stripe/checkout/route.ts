@@ -11,7 +11,6 @@ type CheckoutBody = {
 export async function POST(request: NextRequest) {
   try {
     const stripe = getStripeClient();
-    const supabaseAdmin = getSupabaseAdminClient();
 
     const authHeader = request.headers.get("authorization") || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
@@ -47,11 +46,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing Stripe price configuration" }, { status: 500 });
     }
 
-    const { data: existingSubscription } = await supabaseAdmin
-      .from("user_subscriptions")
-      .select("stripe_customer_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    let existingCustomerId: string | null = null;
+    try {
+      const supabaseAdmin = getSupabaseAdminClient();
+      const { data: existingSubscription } = await supabaseAdmin
+        .from("user_subscriptions")
+        .select("stripe_customer_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      existingCustomerId = existingSubscription?.stripe_customer_id || null;
+    } catch (adminError) {
+      // Do not block checkout creation when admin client is misconfigured.
+      console.warn("Checkout: admin client unavailable, creating session without existing customer", adminError);
+    }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
@@ -60,8 +68,8 @@ export async function POST(request: NextRequest) {
       success_url: `${appUrl}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/pricing?checkout=cancelled&plan=${planId}`,
       client_reference_id: user.id,
-      customer: existingSubscription?.stripe_customer_id || undefined,
-      customer_email: existingSubscription?.stripe_customer_id ? undefined : user.email,
+      customer: existingCustomerId || undefined,
+      customer_email: existingCustomerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
       metadata: {
         user_id: user.id,
@@ -78,6 +86,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error("Stripe checkout error:", error);
+
+    if (error instanceof Error) {
+      const message = error.message;
+
+      if (
+        message.includes("STRIPE_SECRET_KEY") ||
+        message.includes("NEXT_PUBLIC_SUPABASE_URL") ||
+        message.includes("NEXT_PUBLIC_SUPABASE_ANON_KEY") ||
+        message.includes("SUPABASE_SERVICE_ROLE_KEY")
+      ) {
+        return NextResponse.json({ error: message }, { status: 500 });
+      }
+    }
+
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
