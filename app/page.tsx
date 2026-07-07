@@ -24,7 +24,6 @@ import {
   PenTool,
   Check,
 } from "lucide-react";
-import { useEffect, useState } from "react";
 
 const exerciseTypes = [
   {
@@ -159,12 +158,6 @@ const benefits = [
 ];
 
 export default function Home() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden bg-background">
       <Navbar />
@@ -179,7 +172,7 @@ export default function Home() {
 
         <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="max-w-6xl mx-auto">
-            <div className={`text-center transition-all duration-1000 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="text-center transition-all duration-1000 opacity-100">
               <div className="inline-flex items-center space-x-3 glass px-6 py-3 rounded-full mb-10 fade-in-up" style={{ animationDelay: '0.1s' }}>
                 <Sparkles className="h-5 w-5 text-chart-3 animate-pulse" />
                 <span className="text-sm md:text-base font-semibold bg-gradient-to-r from-foreground via-foreground to-muted-foreground bg-clip-text text-transparent">
@@ -407,7 +400,7 @@ export default function Home() {
         <div className="absolute inset-0 mesh-gradient opacity-30" />
         <div className="container relative mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-            <div className={`${mounted ? 'slide-in-from-left' : 'opacity-0'}`}>
+            <div className="slide-in-from-left">
               <div className="inline-flex items-center space-x-2 glass px-4 py-2 rounded-full mb-6">
                 <TrendingUp className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">Progress Analytics</span>

@@ -11,6 +11,14 @@ const nextConfig = {
   images: {
     unoptimized: process.env.NODE_ENV === 'development',
   },
+  webpack: (config, { dev }) => {
+    if (dev) {
+      // Avoid intermittent cache corruption in dev on synced folders (e.g. OneDrive).
+      config.cache = false;
+    }
+
+    return config;
+  },
   async headers() {
     return [
       {

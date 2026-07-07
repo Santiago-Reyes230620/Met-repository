@@ -153,7 +153,7 @@ export function Navbar() {
               <GraduationCap className="h-8 w-8 text-primary group-hover:scale-110 transition-transform duration-300" />
               <BookOpen className="absolute -bottom-1 -right-1 h-4 w-4 text-chart-2 group-hover:rotate-12 transition-transform duration-300" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary via-chart-1 to-chart-2 bg-clip-text text-transparent">
+            <span className="text-xl font-bold text-primary">
               MET Prep
             </span>
           </Link>

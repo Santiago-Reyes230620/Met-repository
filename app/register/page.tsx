@@ -48,7 +48,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const { error } = await signUp(email, password, fullName);
+      const { error, requiresEmailConfirmation } = await signUp(email, password, fullName);
 
       if (error) {
         if (error.message.includes("already registered")) {
@@ -57,7 +57,11 @@ export default function RegisterPage() {
           setError(error.message || "Failed to create account. Please try again.");
         }
       } else {
-        router.push("/dashboard");
+        if (requiresEmailConfirmation) {
+          router.push("/login?message=check-email");
+        } else {
+          router.push("/dashboard");
+        }
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,29 +11,57 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { GraduationCap, BookOpen, Loader2, Eye, EyeOff, Sparkles } from "lucide-react";
 
-export default function LoginPage() {
+function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [infoMessage, setInfoMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const message = searchParams.get("message");
+
+  useEffect(() => {
+    if (message === "check-email") {
+      setInfoMessage("Check your email inbox and confirm your account before signing in.");
+    } else {
+      setInfoMessage("");
+    }
+  }, [message]);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace("/dashboard");
+    }
+
+    if (!authLoading && !user) {
+      setLoading((prev) => (prev ? false : prev));
+    }
+  }, [authLoading, user, router]);
+
+  const handleSignIn = async () => {
     setError("");
     setLoading(true);
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPassword = password.trim();
+
+    if (!normalizedEmail || !normalizedPassword) {
+      setError("Please provide your email and password.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { error } = await signIn(email, password);
+      const { error } = await signIn(normalizedEmail, normalizedPassword);
 
       if (error) {
         setError(error.message || "Failed to sign in. Please check your credentials.");
-      } else {
-        router.push("/dashboard");
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -69,20 +97,34 @@ export default function LoginPage() {
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit} className="animate-in" style={{ animationDelay: '0.1s' }}>
+          {infoMessage && (
+            <Alert className="mb-6 animate-in border-primary/30 bg-primary/10 text-foreground">
+              <AlertDescription>{infoMessage}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="animate-in" style={{ animationDelay: '0.1s' }}>
             <Card className="glass border-border/50 overflow-hidden">
               <CardContent className="p-6 md:p-8 space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-base font-medium">Email</Label>
                   <Input
                     id="email"
+                    name="email"
                     type="email"
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
                     required
                     disabled={loading}
                     className="h-12 text-base bg-background/50"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void handleSignIn();
+                      }
+                    }}
                   />
                 </div>
 
@@ -91,13 +133,21 @@ export default function LoginPage() {
                   <div className="relative">
                     <Input
                       id="password"
+                      name="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
                       required
                       disabled={loading}
                       className="h-12 text-base pr-10 bg-background/50"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void handleSignIn();
+                        }
+                      }}
                     />
                     <Button
                       type="button"
@@ -117,11 +167,14 @@ export default function LoginPage() {
                 </div>
 
                 <Button
-                  type="submit"
+                  type="button"
                   className="w-full bg-gradient-to-r from-primary to-chart-2 hover:scale-[1.02] h-12 text-base font-semibold transition-all duration-300"
-                  disabled={loading}
+                  disabled={loading || authLoading}
+                  onClick={() => {
+                    void handleSignIn();
+                  }}
                 >
-                  {loading ? (
+                  {loading || authLoading ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Signing in...
@@ -132,7 +185,7 @@ export default function LoginPage() {
                 </Button>
               </CardContent>
             </Card>
-          </form>
+          </div>
 
           <div className="mt-6 md:mt-8 text-center text-sm text-muted-foreground animate-in" style={{ animationDelay: '0.2s' }}>
             Don&apos;t have an account?{" "}
@@ -178,5 +231,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <LoginContent />
+    </Suspense>
   );
 }

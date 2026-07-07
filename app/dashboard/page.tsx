@@ -102,17 +102,58 @@ const skillCards = [
 ];
 
 export default function DashboardPage() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, session, loading } = useAuth();
   const { targetScore, deadline, overallScore, daysRemaining, progressPercentage } = useGoal();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [isSyncingCheckout, setIsSyncingCheckout] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/login");
+      router.replace("/login");
     }
     setMounted(true);
   }, [user, loading, router]);
+
+  useEffect(() => {
+    const syncCheckout = async () => {
+      if (!user || !session?.access_token) return;
+
+      const params = new URLSearchParams(window.location.search);
+      const checkoutStatus = params.get("checkout");
+      const sessionId = params.get("session_id");
+
+      if (checkoutStatus !== "success" || !sessionId) return;
+
+      try {
+        setIsSyncingCheckout(true);
+
+        const response = await fetch("/api/stripe/sync-checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ sessionId }),
+        });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.error || "Failed to sync subscription after checkout");
+        }
+
+        // Clean URL params and refresh local subscription/profile hooks.
+        router.replace("/dashboard");
+        router.refresh();
+      } catch (error) {
+        console.error("Checkout sync failed:", error);
+      } finally {
+        setIsSyncingCheckout(false);
+      }
+    };
+
+    syncCheckout();
+  }, [user, session, router]);
 
   if (loading || !user) {
     return (
@@ -163,6 +204,12 @@ export default function DashboardPage() {
                   Continue your journey to mastering the Michigan English Test.
                 </p>
               </div>
+              {isSyncingCheckout && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                  Updating your subscription...
+                </div>
+              )}
               <Link href="/quiz" className="hidden md:block">
                 <Button className="bg-gradient-to-r from-primary to-chart-2 hover:scale-105 transition-all duration-300 text-base px-6">
                   <Zap className="mr-2 h-4 w-4" />

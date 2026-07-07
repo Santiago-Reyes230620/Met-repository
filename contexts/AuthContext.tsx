@@ -10,7 +10,7 @@ type AuthContextType = {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null; requiresEmailConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
@@ -62,6 +62,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [router]);
 
+  const mapAuthErrorMessage = (error: unknown, action: 'signIn' | 'signUp') => {
+    const rawMessage = error instanceof Error ? error.message : 'Authentication failed';
+    const normalized = rawMessage.toLowerCase();
+
+    if (normalized.includes('invalid login credentials')) {
+      return 'Invalid email or password. Please verify your credentials and try again.';
+    }
+
+    if (normalized.includes('email not confirmed')) {
+      return 'Please confirm your email address before signing in.';
+    }
+
+    if (normalized.includes('user already registered')) {
+      return 'This email is already registered. Please sign in instead.';
+    }
+
+    if (normalized.includes('failed to fetch') || normalized.includes('networkerror')) {
+      return 'Network error connecting to Supabase. Please verify your internet connection and Supabase settings.';
+    }
+
+    if (normalized.includes('invalid api key') || normalized.includes('jwt') || normalized.includes('apikey')) {
+      return 'Supabase configuration is invalid. Verify NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.';
+    }
+
+    if (action === 'signUp') {
+      return 'Failed to create account. Please try again.';
+    }
+
+    return 'Failed to sign in. Please try again.';
+  };
+
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
@@ -108,8 +139,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: normalizedEmail,
         password,
         options: {
           data: {
@@ -124,24 +156,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // For now, we'll attempt to create it, but it might fail due to RLS
       // This is handled in the auth state change listener
 
-      return { error: null };
+      return {
+        error: null,
+        requiresEmailConfirmation: !data.session,
+      };
     } catch (error) {
-      return { error: error as Error };
+      return { error: new Error(mapAuthErrorMessage(error, 'signUp')) };
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Keep auth in loading mode until Supabase emits the auth state change.
+      setLoading(true);
+
+      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedPassword = password.trim();
+
       const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: normalizedEmail,
+        password: normalizedPassword,
       });
 
       if (error) throw error;
 
+      // Fallback: if auth state event is delayed/missed, sync session state directly.
+      const {
+        data: { session: currentSession },
+      } = await supabase.auth.getSession();
+
+      setSession(currentSession ?? null);
+      setUser(currentSession?.user ?? null);
+
+      if (currentSession?.user) {
+        await fetchProfile(currentSession.user.id);
+      }
+
+      setLoading(false);
+
       return { error: null };
     } catch (error) {
-      return { error: error as Error };
+      setLoading(false);
+      return { error: new Error(mapAuthErrorMessage(error, 'signIn')) };
     }
   };
 
