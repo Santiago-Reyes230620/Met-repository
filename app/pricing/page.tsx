@@ -85,6 +85,7 @@ function PricingPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
+  const paymentProvider = process.env.NEXT_PUBLIC_PAYMENT_PROVIDER || "stripe";
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -112,7 +113,12 @@ function PricingPageContent() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/stripe/checkout", {
+      const endpoint =
+        paymentProvider === "mercadopago"
+          ? "/api/mercadopago/checkout"
+          : "/api/stripe/checkout";
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
