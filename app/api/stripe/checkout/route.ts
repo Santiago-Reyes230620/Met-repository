@@ -132,6 +132,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: message, code }, { status: 400 });
     }
 
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    // Always return the real error message to simplify production diagnostics.
+    return NextResponse.json(
+      {
+        error: message || "Unknown checkout error",
+        code: code || "checkout_unknown_error",
+      },
+      { status: 500 }
+    );
   }
 }
