@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Navbar } from "@/components/shared/Navbar";
@@ -1209,10 +1210,7 @@ export default function DailyQuizPage() {
     }));
   };
 
-  const handleOpenMockExam = () => {
-    const target = isFreePlan ? "/pricing?plan=premium" : "/mock-exams";
-    window.location.href = target;
-  };
+  const mockExamHref = isFreePlan ? "/pricing?plan=premium" : "/mock-exams";
 
   const handleAnswerSelect = (answerIndex: number) => {
     const newAnswers = [...quizState.selectedAnswers];
@@ -1394,17 +1392,19 @@ export default function DailyQuizPage() {
                   </AlertDescription>
                 </Alert>
 
-                <Button onClick={handleStartQuiz} className="w-full h-12 text-lg bg-gradient-to-r from-primary to-chart-2">
+                <Button
+                  type="button"
+                  onClick={handleStartQuiz}
+                  className="w-full h-12 text-lg bg-gradient-to-r from-primary to-chart-2 relative z-20 pointer-events-auto"
+                >
                   Start Daily Quiz
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
 
-                <Button
-                  variant="outline"
-                  className="w-full h-12 text-lg"
-                  onClick={handleOpenMockExam}
-                >
-                  {isFreePlan ? "Unlock General MET Mock Exam" : "Open General MET Mock Exam"}
+                <Button asChild variant="outline" className="w-full h-12 text-lg relative z-20 pointer-events-auto">
+                  <Link href={mockExamHref}>
+                    {isFreePlan ? "Unlock General MET Mock Exam" : "Open General MET Mock Exam"}
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
