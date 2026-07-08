@@ -1194,35 +1194,24 @@ export default function DailyQuizPage() {
   }, [quizState.quizStarted, quizState.showResults]);
 
   const handleStartQuiz = () => {
-    if (quizState.dailyQuestions.length === 0) {
-      const today = new Date().toISOString().split("T")[0];
-      const filtered = shuffleWithSeed(questionPool, today);
-      const dailyQuestions = filtered.slice(0, quizQuestionCount);
-
-      setQuizState((prev) => ({
-        ...prev,
-        dailyQuestions,
-        selectedAnswers: new Array(quizQuestionCount).fill(null),
-        quizStarted: true,
-        timeRemaining: 10 * 60,
-      }));
-      return;
-    }
+    const today = new Date().toISOString().split("T")[0];
+    const filtered = shuffleWithSeed(questionPool, today);
+    const dailyQuestions = filtered.slice(0, quizQuestionCount);
 
     setQuizState((prev) => ({
       ...prev,
+      currentQuestionIndex: 0,
+      selectedAnswers: new Array(quizQuestionCount).fill(null),
+      dailyQuestions,
       quizStarted: true,
+      showResults: false,
       timeRemaining: 10 * 60,
     }));
   };
 
   const handleOpenMockExam = () => {
-    if (isFreePlan) {
-      router.push("/pricing?plan=premium");
-      return;
-    }
-
-    router.push("/mock-exams");
+    const target = isFreePlan ? "/pricing?plan=premium" : "/mock-exams";
+    window.location.href = target;
   };
 
   const handleAnswerSelect = (answerIndex: number) => {

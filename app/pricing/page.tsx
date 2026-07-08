@@ -87,6 +87,16 @@ function PricingPageContent() {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
   const paymentProvider = process.env.NEXT_PUBLIC_PAYMENT_PROVIDER || "mercadopago";
 
+  const getDisplayedPrice = (basePrice: number) => {
+    if (basePrice === 0) return 0;
+    return billingPeriod === "yearly" ? basePrice * 10 : basePrice;
+  };
+
+  const getDisplayedPeriod = (basePrice: number) => {
+    if (basePrice === 0) return "";
+    return billingPeriod === "yearly" ? "/year" : "/month";
+  };
+
   const handleSubscribe = async (planId: string) => {
     if (!user) {
       const target = `/pricing?plan=${planId}`;
@@ -179,7 +189,7 @@ function PricingPageContent() {
                 <div className="text-left sm:text-right">
                   <p className="text-sm text-muted-foreground">Precio</p>
                   <p className="text-2xl sm:text-3xl font-bold text-foreground">
-                    ${selectedPlanObject.price === 0 ? "0" : selectedPlanObject.price.toFixed(2)}{selectedPlanObject.price > 0 ? "/month" : ""}
+                    ${getDisplayedPrice(selectedPlanObject.price) === 0 ? "0" : getDisplayedPrice(selectedPlanObject.price).toFixed(2)}{getDisplayedPeriod(selectedPlanObject.price)}
                   </p>
                 </div>
                 <Button
@@ -261,9 +271,9 @@ function PricingPageContent() {
                   <div className="mt-4 pt-4 border-t border-border">
                     <div className="flex items-baseline gap-1">
                       <span className="text-4xl font-bold">
-                        ${plan.price === 0 ? "0" : plan.price.toFixed(2)}
+                        ${getDisplayedPrice(plan.price) === 0 ? "0" : getDisplayedPrice(plan.price).toFixed(2)}
                       </span>
-                      {plan.price > 0 && <span className="text-muted-foreground">/{plan.period}</span>}
+                      {plan.price > 0 && <span className="text-muted-foreground">{getDisplayedPeriod(plan.price)}</span>}
                     </div>
                   </div>
                 </CardHeader>
