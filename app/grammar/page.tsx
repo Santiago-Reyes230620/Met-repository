@@ -73,7 +73,7 @@ export default function GrammarPage() {
         query = query.eq("difficulty", difficulty);
       }
 
-      const { data, error } = await query.limit(30);
+      const { data, error } = await query.range(0, 4999);
 
       if (error) throw error;
 

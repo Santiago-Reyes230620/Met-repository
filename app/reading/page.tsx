@@ -63,7 +63,7 @@ export default function ReadingPage() {
         query = query.eq("difficulty", difficulty);
       }
 
-      const { data: passagesData, error: passagesError } = await query.limit(15);
+      const { data: passagesData, error: passagesError } = await query.range(0, 1999);
 
       if (passagesError) throw passagesError;
 

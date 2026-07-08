@@ -2,122 +2,303 @@ import { GrammarExercise, ReadingPassage, ReadingQuestion, VocabularyExercise } 
 
 const now = new Date().toISOString();
 
-export const FALLBACK_GRAMMAR_EXERCISES: GrammarExercise[] = [
-  {
-    id: "fallback-grammar-1",
-    question: "She ___ to the gym every morning.",
-    options: ["go", "goes", "going", "gone"],
-    correct_answer: "goes",
-    explanation: "Use present simple third person singular: goes.",
-    difficulty: "easy",
-    category: "verb-tenses",
-    created_at: now,
-  },
-  {
-    id: "fallback-grammar-2",
-    question: "If I ___ more time, I would learn French.",
-    options: ["have", "had", "will have", "having"],
-    correct_answer: "had",
-    explanation: "Second conditional uses if + past simple, would + base verb.",
-    difficulty: "medium",
-    category: "conditionals",
-    created_at: now,
-  },
-  {
-    id: "fallback-grammar-3",
-    question: "He is good ___ solving logic problems.",
-    options: ["in", "at", "on", "for"],
-    correct_answer: "at",
-    explanation: "The correct collocation is good at.",
-    difficulty: "easy",
-    category: "prepositions",
-    created_at: now,
-  },
-];
-
-export const FALLBACK_VOCABULARY_EXERCISES: VocabularyExercise[] = [
-  {
-    id: "fallback-vocab-1",
-    word: "meticulous",
-    definition: "very careful and precise",
-    options: ["careless", "meticulous", "brief", "unclear"],
-    correct_answer: "meticulous",
-    example_sentence: "She is meticulous when reviewing financial reports.",
-    part_of_speech: "adjective",
-    difficulty: "medium",
-    category: "adjective",
-    created_at: now,
-  },
-  {
-    id: "fallback-vocab-2",
-    word: "abundant",
-    definition: "existing in large quantities",
-    options: ["rare", "abundant", "empty", "scarce"],
-    correct_answer: "abundant",
-    example_sentence: "The region has abundant natural resources.",
-    part_of_speech: "adjective",
-    difficulty: "easy",
-    category: "adjective",
-    created_at: now,
-  },
-  {
-    id: "fallback-vocab-3",
-    word: "mitigate",
-    definition: "to make less severe",
-    options: ["increase", "ignore", "mitigate", "delay"],
-    correct_answer: "mitigate",
-    example_sentence: "The city planted trees to mitigate heat in summer.",
-    part_of_speech: "verb",
-    difficulty: "hard",
-    category: "verb",
-    created_at: now,
-  },
-];
-
-const fallbackReadingPassage: ReadingPassage = {
-  id: "fallback-reading-1",
-  title: "Learning Through Practice",
-  content:
-    "Consistent practice is one of the most effective ways to improve language skills. Students who read daily, review vocabulary in context, and complete short grammar drills usually progress faster than those who study only once in a while. Small, frequent sessions reduce fatigue and improve retention over time.",
-  difficulty: "easy",
-  category: "academic",
-  created_at: now,
+const rotateOptions = (options: string[], shift: number): string[] => {
+  const n = options.length;
+  if (n === 0) return options;
+  const offset = ((shift % n) + n) % n;
+  return [...options.slice(offset), ...options.slice(0, offset)];
 };
 
-const fallbackReadingQuestions: ReadingQuestion[] = [
+const GRAMMAR_TARGET = 2400;
+const VOCAB_TARGET = 2200;
+const READING_TARGET = 800;
+
+const grammarTemplates: Array<{
+  stem: string;
+  options: string[];
+  correct: string;
+  explanation: string;
+  category: "verb-tenses" | "conditionals" | "articles" | "prepositions";
+}> = [
   {
-    id: "fallback-reading-q1",
-    passage_id: fallbackReadingPassage.id,
-    question: "What is the main idea of the passage?",
-    options: [
-      "Long study sessions are always better",
-      "Language progress improves with consistent practice",
-      "Vocabulary is not important",
-      "Grammar should be avoided",
-    ],
-    correct_answer: "Language progress improves with consistent practice",
-    question_type: "main-idea",
-    created_at: now,
+    stem: "{subject} ___ to the office every weekday.",
+    options: ["go", "goes", "going", "gone"],
+    correct: "goes",
+    explanation: "Use present simple third-person singular with he/she/it forms.",
+    category: "verb-tenses",
   },
   {
-    id: "fallback-reading-q2",
-    passage_id: fallbackReadingPassage.id,
-    question: "Why are small sessions recommended?",
-    options: [
-      "They cost less",
-      "They reduce fatigue and improve retention",
-      "They replace reading",
-      "They eliminate grammar",
-    ],
-    correct_answer: "They reduce fatigue and improve retention",
-    question_type: "detail",
-    created_at: now,
+    stem: "If we ___ earlier, we would catch the first train.",
+    options: ["leave", "left", "will leave", "had left"],
+    correct: "left",
+    explanation: "Second conditional uses if + past simple, would + base verb.",
+    category: "conditionals",
+  },
+  {
+    stem: "She bought ___ umbrella because it was raining heavily.",
+    options: ["a", "an", "the", "no article"],
+    correct: "an",
+    explanation: "Use 'an' before words that begin with a vowel sound.",
+    category: "articles",
+  },
+  {
+    stem: "The report is divided ___ three sections.",
+    options: ["in", "at", "into", "on"],
+    correct: "into",
+    explanation: "The correct collocation is divided into.",
+    category: "prepositions",
+  },
+  {
+    stem: "By next month, they ___ the prototype.",
+    options: ["finish", "finished", "will finish", "will have finished"],
+    correct: "will have finished",
+    explanation: "Future perfect describes completion before a future point.",
+    category: "verb-tenses",
+  },
+  {
+    stem: "If she ___ more confident, she would speak up in meetings.",
+    options: ["is", "was", "were", "has been"],
+    correct: "were",
+    explanation: "Use subjunctive 'were' in hypothetical conditionals.",
+    category: "conditionals",
+  },
+  {
+    stem: "We visited ___ university near the city center.",
+    options: ["a", "an", "the", "no article"],
+    correct: "a",
+    explanation: "Use 'a' before consonant sounds.",
+    category: "articles",
+  },
+  {
+    stem: "He is responsible ___ updating the dashboard.",
+    options: ["for", "to", "with", "about"],
+    correct: "for",
+    explanation: "The correct structure is responsible for + gerund.",
+    category: "prepositions",
   },
 ];
 
-export const FALLBACK_READING_CONTENT: Array<ReadingPassage & { questions: ReadingQuestion[] }> = [
+const grammarSubjects = [
+  "The manager",
+  "My brother",
+  "The student",
+  "The engineer",
+  "Our coach",
+  "The analyst",
+  "The doctor",
+  "The designer",
+];
+
+export const FALLBACK_GRAMMAR_EXERCISES: GrammarExercise[] = Array.from(
+  { length: GRAMMAR_TARGET },
+  (_, i) => {
+    const template = grammarTemplates[i % grammarTemplates.length];
+    const difficulty: GrammarExercise["difficulty"] =
+      i % 3 === 0 ? "easy" : i % 3 === 1 ? "medium" : "hard";
+
+    const subject = grammarSubjects[i % grammarSubjects.length];
+    const question = template.stem.replace("{subject}", subject);
+    const options = rotateOptions(template.options, i % template.options.length);
+
+    return {
+      id: `fallback-grammar-${i + 1}`,
+      question: `${question} (Set ${Math.floor(i / grammarTemplates.length) + 1})`,
+      options,
+      correct_answer: template.correct,
+      explanation: template.explanation,
+      difficulty,
+      category: template.category,
+      created_at: now,
+    };
+  }
+);
+
+const vocabBase: Array<{
+  word: string;
+  definition: string;
+  distractors: string[];
+  sentence: string;
+  partOfSpeech: string;
+  category: string;
+}> = [
   {
-    ...fallbackReadingPassage,
-    questions: fallbackReadingQuestions,
+    word: "meticulous",
+    definition: "very careful and precise",
+    distractors: ["careless", "vague", "hurried"],
+    sentence: "She is meticulous when auditing reports.",
+    partOfSpeech: "adjective",
+    category: "adjective",
+  },
+  {
+    word: "mitigate",
+    definition: "to make less severe",
+    distractors: ["intensify", "ignore", "delay"],
+    sentence: "City trees help mitigate extreme summer heat.",
+    partOfSpeech: "verb",
+    category: "verb",
+  },
+  {
+    word: "abundant",
+    definition: "existing in large quantities",
+    distractors: ["scarce", "minimal", "rare"],
+    sentence: "The valley has abundant natural resources.",
+    partOfSpeech: "adjective",
+    category: "adjective",
+  },
+  {
+    word: "coherent",
+    definition: "logical and consistent",
+    distractors: ["confusing", "random", "fragmented"],
+    sentence: "Her argument was coherent from start to finish.",
+    partOfSpeech: "adjective",
+    category: "adjective",
+  },
+  {
+    word: "allocate",
+    definition: "to distribute resources for a purpose",
+    distractors: ["waste", "hide", "borrow"],
+    sentence: "The team decided to allocate funds to training.",
+    partOfSpeech: "verb",
+    category: "verb",
+  },
+  {
+    word: "insight",
+    definition: "a deep understanding of a situation",
+    distractors: ["confusion", "silence", "mistake"],
+    sentence: "The survey gave insight into student habits.",
+    partOfSpeech: "noun",
+    category: "noun",
+  },
+  {
+    word: "rapidly",
+    definition: "at high speed",
+    distractors: ["slowly", "carelessly", "rarely"],
+    sentence: "Technology evolves rapidly in modern industries.",
+    partOfSpeech: "adverb",
+    category: "adverb",
+  },
+  {
+    word: "resilient",
+    definition: "able to recover quickly from difficulty",
+    distractors: ["fragile", "rigid", "passive"],
+    sentence: "A resilient mindset supports long-term learning.",
+    partOfSpeech: "adjective",
+    category: "adjective",
   },
 ];
+
+export const FALLBACK_VOCABULARY_EXERCISES: VocabularyExercise[] = Array.from(
+  { length: VOCAB_TARGET },
+  (_, i) => {
+    const base = vocabBase[i % vocabBase.length];
+    const options = rotateOptions([base.word, ...base.distractors], i % 4);
+    const difficulty: VocabularyExercise["difficulty"] =
+      i % 3 === 0 ? "easy" : i % 3 === 1 ? "medium" : "hard";
+
+    return {
+      id: `fallback-vocab-${i + 1}`,
+      word: `${base.word}-${Math.floor(i / vocabBase.length) + 1}`,
+      definition: base.definition,
+      options,
+      correct_answer: base.word,
+      example_sentence: `${base.sentence} (Example ${Math.floor(i / vocabBase.length) + 1})`,
+      part_of_speech: base.partOfSpeech,
+      difficulty,
+      category: base.category,
+      created_at: now,
+    };
+  }
+);
+
+const readingThemes = [
+  "education",
+  "technology",
+  "health",
+  "business",
+  "environment",
+  "science",
+  "society",
+  "communication",
+];
+
+const readingDifficulties: Array<ReadingPassage["difficulty"]> = ["easy", "medium", "hard"];
+
+const makeReadingQuestions = (passageId: string, theme: string, idx: number): ReadingQuestion[] => {
+  const mainIdea = `${theme} improvement depends on consistent strategy and review`;
+  const detail = `the plan includes measurement and adjustment over time`;
+  const inference = `long-term results improve when actions are sustained`;
+
+  return [
+    {
+      id: `fallback-reading-q-${idx}-1`,
+      passage_id: passageId,
+      question: "What is the main idea of the passage?",
+      options: [
+        mainIdea,
+        "Instant results are always guaranteed",
+        "Only expensive tools make progress possible",
+        "Planning is unnecessary for success",
+      ],
+      correct_answer: mainIdea,
+      question_type: "main-idea",
+      created_at: now,
+    },
+    {
+      id: `fallback-reading-q-${idx}-2`,
+      passage_id: passageId,
+      question: "Which detail is explicitly mentioned?",
+      options: [
+        detail,
+        "Progress is random and cannot be tracked",
+        "The strategy avoids all feedback",
+        "Outcomes are evaluated once a decade",
+      ],
+      correct_answer: detail,
+      question_type: "detail",
+      created_at: now,
+    },
+    {
+      id: `fallback-reading-q-${idx}-3`,
+      passage_id: passageId,
+      question: "What can be inferred from the passage?",
+      options: [
+        inference,
+        "Shortcuts always outperform steady practice",
+        "Consistency reduces all effort to zero",
+        "Reading comprehension is unrelated to context",
+      ],
+      correct_answer: inference,
+      question_type: "inference",
+      created_at: now,
+    },
+  ];
+};
+
+export const FALLBACK_READING_CONTENT: Array<ReadingPassage & { questions: ReadingQuestion[] }> = Array.from(
+  { length: READING_TARGET },
+  (_, i) => {
+    const theme = readingThemes[i % readingThemes.length];
+    const difficulty = readingDifficulties[i % readingDifficulties.length];
+    const passageId = `fallback-reading-${i + 1}`;
+
+    const passage: ReadingPassage = {
+      id: passageId,
+      title: `Reading Practice ${i + 1}: ${theme.charAt(0).toUpperCase()}${theme.slice(1)}`,
+      content:
+        `This passage explores ${theme} through a practical learning lens. ` +
+        `It explains how consistent routines, regular feedback, and small measurable goals ` +
+        `create stronger outcomes over time. In this scenario, learners compare strategies, ` +
+        `identify what works, and refine their approach with each review cycle. ` +
+        `The overall message is that sustained practice, not isolated effort, drives meaningful progress. ` +
+        `(Passage set ${Math.floor(i / readingThemes.length) + 1})`,
+      difficulty,
+      category: theme,
+      created_at: now,
+    };
+
+    return {
+      ...passage,
+      questions: makeReadingQuestions(passageId, theme, i + 1),
+    };
+  }
+);
