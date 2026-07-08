@@ -1194,6 +1194,11 @@ export default function DailyQuizPage() {
   }, [quizState.quizStarted, quizState.showResults]);
 
   const handleStartQuiz = () => {
+    if (quizState.dailyQuestions.length === 0) {
+      initializeQuiz();
+      return;
+    }
+
     setQuizState((prev) => ({
       ...prev,
       quizStarted: true,
@@ -1281,6 +1286,9 @@ export default function DailyQuizPage() {
 
   // Quiz start screen
   if (!quizStarted && !showResults) {
+    const totalDailyQuestions = dailyQuestions.length;
+    const safeTotal = totalDailyQuestions || 1;
+
     const categoryBreakdown = {
       grammar: dailyQuestions.filter((q) => q.category === "grammar").length,
       vocabulary: dailyQuestions.filter((q) => q.category === "vocabulary").length,
@@ -1325,7 +1333,7 @@ export default function DailyQuizPage() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="p-4 bg-primary/5 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-primary">{dailyQuestions.length}</p>
+                    <p className="text-2xl font-bold text-primary">{totalDailyQuestions}</p>
                     <p className="text-sm text-muted-foreground">Questions</p>
                   </div>
                   <div className="p-4 bg-chart-2/5 rounded-lg text-center">
@@ -1333,7 +1341,7 @@ export default function DailyQuizPage() {
                     <p className="text-sm text-muted-foreground">Minutes</p>
                   </div>
                   <div className="p-4 bg-chart-3/5 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-chart-3">{dailyQuestions.length * 4}</p>
+                    <p className="text-2xl font-bold text-chart-3">{totalDailyQuestions * 4}</p>
                     <p className="text-sm text-muted-foreground">Max Points</p>
                   </div>
                   <div className="p-4 bg-chart-4/5 rounded-lg text-center">
@@ -1361,7 +1369,7 @@ export default function DailyQuizPage() {
                         <div className="w-full bg-secondary/20 rounded-full h-2">
                           <div
                             className={`${cat.color} h-2 rounded-full`}
-                            style={{ width: `${(cat.count / dailyQuestions.length) * 100}%` }}
+                            style={{ width: `${(cat.count / safeTotal) * 100}%` }}
                           />
                         </div>
                       </div>
@@ -1380,6 +1388,14 @@ export default function DailyQuizPage() {
                   Start Daily Quiz
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
+
+                <Button
+                  variant="outline"
+                  className="w-full h-12 text-lg"
+                  onClick={() => router.push("/mock-exams")}
+                >
+                  Open General MET Mock Exam
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -1393,6 +1409,36 @@ export default function DailyQuizPage() {
   // Quiz in progress
   if (quizStarted) {
     const currentQuestion = dailyQuestions[currentQuestionIndex];
+    if (!currentQuestion) {
+      return (
+        <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-card">
+          <Navbar />
+          <main className="flex-1 py-12 md:py-20">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
+              <Card className="premium-card">
+                <CardHeader>
+                  <CardTitle>Quiz is getting ready</CardTitle>
+                  <CardDescription>We are preparing your daily questions.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    onClick={() => {
+                      initializeQuiz();
+                      setQuizState((prev) => ({ ...prev, quizStarted: false }));
+                    }}
+                    className="w-full"
+                  >
+                    Reload Questions
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      );
+    }
+
     const answered = selectedAnswers.filter((a) => a !== null).length;
     const minutes = Math.floor(timeRemaining / 60);
     const seconds = timeRemaining % 60;

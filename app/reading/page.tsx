@@ -48,6 +48,12 @@ export default function ReadingPage() {
   const [loading, setLoading] = useState(true);
   const [difficulty, setDifficulty] = useState<string>("all");
 
+  const getFallbackPassages = useCallback(() => {
+    return FALLBACK_READING_CONTENT.filter((passage) => {
+      return difficulty !== "all" ? passage.difficulty === difficulty : true;
+    });
+  }, [difficulty]);
+
   const fetchPassages = useCallback(async () => {
     setLoading(true);
     try {
@@ -74,7 +80,8 @@ export default function ReadingPage() {
       );
 
       const nonEmptyPassages = passagesWithQuestions.filter((passage) => passage.questions.length > 0);
-      setPassages(nonEmptyPassages.length > 0 ? nonEmptyPassages : FALLBACK_READING_CONTENT);
+      const fallbackPassages = getFallbackPassages();
+      setPassages(nonEmptyPassages.length > 0 ? nonEmptyPassages : fallbackPassages);
       setCurrentPassageIndex(0);
       setCurrentQuestionIndex(0);
       setSelectedAnswer(null);
@@ -83,10 +90,17 @@ export default function ReadingPage() {
       setAnsweredCount(0);
     } catch (error) {
       console.error("Error fetching passages:", error);
+      setPassages(getFallbackPassages());
+      setCurrentPassageIndex(0);
+      setCurrentQuestionIndex(0);
+      setSelectedAnswer(null);
+      setShowResult(false);
+      setCorrectCount(0);
+      setAnsweredCount(0);
     } finally {
       setLoading(false);
     }
-  }, [difficulty]);
+  }, [difficulty, getFallbackPassages]);
 
   useEffect(() => {
     if (!authLoading && !user) {
