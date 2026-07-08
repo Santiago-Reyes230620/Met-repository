@@ -1152,6 +1152,7 @@ export default function DailyQuizPage() {
     if (!authLoading && user && !subLoading) {
       if (!hasAccess("quiz")) {
         setShowPaywall(true);
+        setLoading(false);
         return;
       }
       initializeQuiz();
