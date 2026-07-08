@@ -60,10 +60,10 @@ const plans = [
     name: "Premium",
     price: 19.99,
     period: "month",
-    description: "Complete package with tutoring",
+    description: "Complete package with advanced prep",
     features: [
       { text: "Everything in Pro", included: true },
-      { text: "1-on-1 Tutoring (2/month)", included: true },
+      { text: "Expert strategy sessions", included: true },
       { text: "Custom Study Plans", included: true },
       { text: "Monthly Progress Reports", included: true },
       { text: "Priority Support", included: true },
@@ -87,15 +87,10 @@ function PricingPageContent() {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
   const paymentProvider = process.env.NEXT_PUBLIC_PAYMENT_PROVIDER || "mercadopago";
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/login");
-    }
-  }, [authLoading, user, router]);
-
   const handleSubscribe = async (planId: string) => {
     if (!user) {
-      router.push("/login");
+      const target = `/pricing?plan=${planId}`;
+      router.push(`/login?redirect=${encodeURIComponent(target)}`);
       return;
     }
 
@@ -157,15 +152,13 @@ function PricingPageContent() {
     return plan.id === "free" ? "Use Free Plan" : `Choose ${plan.name}`;
   };
 
-  if (authLoading || subLoading) {
+  if (authLoading || (user && subLoading)) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-card flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-
-  if (!user) return null;
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-card">

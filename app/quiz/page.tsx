@@ -1124,7 +1124,7 @@ interface QuizState {
 
 export default function DailyQuizPage() {
   const { user, loading: authLoading } = useAuth();
-  const { subscription, loading: subLoading, hasAccess } = useSubscription();
+  const { subscription, loading: subLoading } = useSubscription();
   const router = useRouter();
 
   const [quizState, setQuizState] = useState<QuizState>({
@@ -1137,7 +1137,7 @@ export default function DailyQuizPage() {
   });
 
   const [dailyStreak, setDailyStreak] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [accessResolved, setAccessResolved] = useState(false);
   const [animateScore, setAnimateScore] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
 
@@ -1149,16 +1149,21 @@ export default function DailyQuizPage() {
   }, [authLoading, user, router]);
 
   useEffect(() => {
-    if (!authLoading && user && !subLoading) {
-      if (!hasAccess("quiz")) {
-        setShowPaywall(true);
-        setLoading(false);
-        return;
-      }
-      initializeQuiz();
-      setLoading(false);
+    if (authLoading || subLoading || !user) return;
+
+    const planId = subscription?.plan_id || "free";
+    const canUseQuiz = planId === "pro" || planId === "premium";
+
+    if (!canUseQuiz) {
+      setShowPaywall(true);
+      setAccessResolved(true);
+      return;
     }
-  }, [authLoading, user, subLoading, hasAccess]);
+
+    initializeQuiz();
+    setShowPaywall(false);
+    setAccessResolved(true);
+  }, [authLoading, subLoading, user, subscription?.plan_id]);
 
   const initializeQuiz = () => {
     const today = new Date().toISOString().split("T")[0];
@@ -1258,7 +1263,7 @@ export default function DailyQuizPage() {
     setAnimateScore(false);
   };
 
-  if (authLoading || subLoading || loading) {
+  if (authLoading || subLoading || (user && !accessResolved)) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-card flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

@@ -127,10 +127,10 @@ const pricingPlans = [
     id: "premium",
     price: "$19.99",
     period: "/month",
-    description: "For test preparation and tutoring",
+    description: "For intensive exam preparation",
     features: [
       "Everything in Pro",
-      "1-on-1 tutoring sessions (2/month)",
+      "Expert strategy sessions",
       "Customized study plans",
       "Monthly progress reports",
       "Exam prep guides",

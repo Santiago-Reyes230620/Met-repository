@@ -23,6 +23,7 @@ function LoginContent() {
   const searchParams = useSearchParams();
 
   const message = searchParams.get("message");
+  const redirectTo = searchParams.get("redirect");
 
   useEffect(() => {
     if (message === "check-email") {
@@ -34,13 +35,13 @@ function LoginContent() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace("/dashboard");
+      router.replace(redirectTo || "/dashboard");
     }
 
     if (!authLoading && !user) {
       setLoading((prev) => (prev ? false : prev));
     }
-  }, [authLoading, user, router]);
+  }, [authLoading, user, router, redirectTo]);
 
   const handleSignIn = async () => {
     setError("");
