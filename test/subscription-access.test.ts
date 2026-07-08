@@ -15,6 +15,12 @@ describe("planHasAccess", () => {
     expect(planHasAccess("premium", "writing")).toBe(true);
   });
 
+  it("mock exams es exclusivo para premium", () => {
+    expect(planHasAccess("free", "mock-exams")).toBe(false);
+    expect(planHasAccess("pro", "mock-exams")).toBe(false);
+    expect(planHasAccess("premium", "mock-exams")).toBe(true);
+  });
+
   it("rechaza features desconocidos", () => {
     expect(planHasAccess("premium", "coaching")).toBe(false);
   });

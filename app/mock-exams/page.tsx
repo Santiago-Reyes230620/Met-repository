@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/hooks/use-subscription";
 import { useMockExams } from "@/hooks/use-mock-exams";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
+import { PaywallAlert } from "@/components/shared/PaywallAlert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,10 +16,12 @@ import { BarChart3, Clock, BookOpen, TrendingUp } from "lucide-react";
 
 export default function MockExamsPage() {
   const { user, loading: authLoading } = useAuth();
+  const { loading: subLoading, hasAccess } = useSubscription();
   const { mockExams, attempts, loading, fetchMockExams, fetchUserAttempts, startMockExam } =
     useMockExams();
   const router = useRouter();
   const [difficulty, setDifficulty] = useState<string>("all");
+  const [showPaywall, setShowPaywall] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -26,11 +30,19 @@ export default function MockExamsPage() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
+    if (authLoading || subLoading || !user) return;
+
+    if (!hasAccess("mock-exams")) {
+      setShowPaywall(true);
+      return;
+    }
+
+    setShowPaywall(false);
     fetchMockExams(difficulty === "all" ? undefined : difficulty);
     fetchUserAttempts();
-  }, [difficulty, fetchMockExams, fetchUserAttempts]);
+  }, [authLoading, subLoading, user, hasAccess, difficulty, fetchMockExams, fetchUserAttempts]);
 
-  if (authLoading) {
+  if (authLoading || subLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
         <div className="text-center">
@@ -43,6 +55,18 @@ export default function MockExamsPage() {
 
   if (!user) {
     return null;
+  }
+
+  if (showPaywall) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-card flex flex-col">
+        <Navbar />
+        <main className="container mx-auto px-4 py-12">
+          <PaywallAlert isOpen={showPaywall} feature="Mock Exams" plan="premium" onClose={() => setShowPaywall(false)} />
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   const completedExams = attempts.filter((a) => a.status === "completed");
