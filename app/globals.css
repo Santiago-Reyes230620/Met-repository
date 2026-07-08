@@ -387,7 +387,14 @@
   .premium-card::before {
     content: '';
     @apply absolute inset-0 opacity-0 transition-opacity duration-500;
+    pointer-events: none;
+    z-index: 0;
     background: linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, transparent 50%, hsl(var(--chart-2) / 0.1) 100%);
+  }
+
+  .premium-card > * {
+    position: relative;
+    z-index: 1;
   }
 
   .premium-card:hover::before {
