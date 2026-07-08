@@ -23,6 +23,7 @@ import {
   Headphones,
   PenTool,
   Check,
+  X,
 } from "lucide-react";
 
 const exerciseTypes = [
@@ -89,14 +90,17 @@ const pricingPlans = [
     name: "Free",
     id: "free",
     price: "$0",
-    description: "Get started with basics",
+    description: "Perfect for getting started",
     features: [
-      "30 daily exercises",
-      "1200+ grammar exercises",
-      "1000+ vocabulary words",
-      "25 reading passages",
-      "Limited listening exercises",
-      "Basic progress tracking",
+      { text: "30 daily exercises", included: true },
+      { text: "Grammar practice", included: true },
+      { text: "Vocabulary practice", included: true },
+      { text: "Reading practice", included: true },
+      { text: "Daily Quiz (5 questions)", included: true },
+      { text: "Listening Practice", included: false },
+      { text: "Speaking Practice", included: false },
+      { text: "Writing Practice", included: false },
+      { text: "General MET Mock Exam", included: false },
     ],
     cta: "Try Free",
     highlighted: false,
@@ -106,18 +110,17 @@ const pricingPlans = [
     id: "pro",
     price: "$9.99",
     period: "/month",
-    description: "Best for serious learners",
+    description: "Most popular - ideal for learners",
     features: [
-      "Unlimited daily exercises",
-      "2500+ grammar exercises",
-      "4500+ vocabulary words",
-      "500+ reading passages",
-      "Full listening module with transcripts",
-      "Speaking practice with AI feedback",
-      "MET-style practice tests",
-      "Detailed progress analytics",
-      "Ad-free experience",
-      "Priority support",
+      { text: "Unlimited daily exercises", included: true },
+      { text: "Full Grammar module", included: true },
+      { text: "Full Vocabulary module", included: true },
+      { text: "Full Reading module", included: true },
+      { text: "Full Listening module", included: true },
+      { text: "Full Speaking module", included: true },
+      { text: "Full Writing module", included: true },
+      { text: "Full Daily Quiz", included: true },
+      { text: "General MET Mock Exam", included: false },
     ],
     cta: "Get Pro",
     highlighted: true,
@@ -127,16 +130,17 @@ const pricingPlans = [
     id: "premium",
     price: "$19.99",
     period: "/month",
-    description: "For intensive exam preparation",
+    description: "Complete package with advanced prep",
     features: [
-      "Everything in Pro",
-      "Expert strategy sessions",
-      "Customized study plans",
-      "Monthly progress reports",
-      "Exam prep guides",
-      "Native speaker Q&A",
-      "Certificate of completion",
-      "Lifetime access to materials",
+      { text: "Everything in Pro", included: true },
+      { text: "General MET Mock Exam", included: true },
+      { text: "Custom Study Plans", included: true },
+      { text: "Monthly Progress Reports", included: true },
+      { text: "Priority Support", included: true },
+      { text: "Advanced Analytics", included: true },
+      { text: "Exam Prep Guides", included: true },
+      { text: "Certificate of Completion", included: true },
+      { text: "Expert strategy sessions", included: true },
     ],
     cta: "Go Premium",
     highlighted: false,
@@ -382,8 +386,14 @@ export default function Home() {
                     <div className="space-y-4">
                       {plan.features.map((feature, fIndex) => (
                         <div key={fIndex} className="flex items-start space-x-3">
-                          <Check className="h-5 w-5 text-chart-2 flex-shrink-0 mt-0.5" />
-                          <span className="text-foreground font-medium text-sm">{feature}</span>
+                          {feature.included ? (
+                            <Check className="h-5 w-5 text-chart-2 flex-shrink-0 mt-0.5" />
+                          ) : (
+                            <X className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                          )}
+                          <span className={feature.included ? "text-foreground font-medium text-sm" : "text-muted-foreground text-sm"}>
+                            {feature.text}
+                          </span>
                         </div>
                       ))}
                     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -1127,6 +1127,10 @@ export default function DailyQuizPage() {
   const { subscription, loading: subLoading } = useSubscription();
   const router = useRouter();
 
+  const planId = subscription?.plan_id || "free";
+  const isFreePlan = planId === "free";
+  const quizQuestionCount = isFreePlan ? 5 : 15;
+
   const [quizState, setQuizState] = useState<QuizState>({
     currentQuestionIndex: 0,
     selectedAnswers: [],
@@ -1148,37 +1152,28 @@ export default function DailyQuizPage() {
     }
   }, [authLoading, user, router]);
 
-  useEffect(() => {
-    if (authLoading || subLoading || !user) return;
-
-    const planId = subscription?.plan_id || "free";
-    const canUseQuiz = planId === "pro" || planId === "premium";
-
-    if (!canUseQuiz) {
-      setShowPaywall(true);
-      setAccessResolved(true);
-      return;
-    }
-
-    initializeQuiz();
-    setShowPaywall(false);
-    setAccessResolved(true);
-  }, [authLoading, subLoading, user, subscription?.plan_id]);
-
-  const initializeQuiz = () => {
+  const initializeQuiz = useCallback(() => {
     const today = new Date().toISOString().split("T")[0];
     const filtered = shuffleWithSeed(questionPool, today);
-    const dailyQuestions = filtered.slice(0, 15);
+    const dailyQuestions = filtered.slice(0, quizQuestionCount);
 
     setQuizState((prev) => ({
       ...prev,
       dailyQuestions,
-      selectedAnswers: new Array(15).fill(null),
+      selectedAnswers: new Array(quizQuestionCount).fill(null),
     }));
 
     // Simulate streak (in real app, fetch from database)
     setDailyStreak(Math.floor(Math.random() * 30) + 1);
-  };
+  }, [quizQuestionCount]);
+
+  useEffect(() => {
+    if (authLoading || subLoading || !user) return;
+
+    initializeQuiz();
+    setShowPaywall(false);
+    setAccessResolved(true);
+  }, [authLoading, subLoading, user, subscription?.plan_id, quizQuestionCount, initializeQuiz]);
 
   // Timer effect - only runs during active quiz
   useEffect(() => {
@@ -1250,11 +1245,11 @@ export default function DailyQuizPage() {
   const handleRetakeQuiz = () => {
     const today = new Date().toISOString().split("T")[0];
     const filtered = shuffleWithSeed(questionPool, today);
-    const dailyQuestions = filtered.slice(0, 15);
+    const dailyQuestions = filtered.slice(0, quizQuestionCount);
 
     setQuizState({
       currentQuestionIndex: 0,
-      selectedAnswers: new Array(15).fill(null),
+      selectedAnswers: new Array(quizQuestionCount).fill(null),
       timeRemaining: 10 * 60,
       quizStarted: false,
       showResults: false,
@@ -1385,7 +1380,9 @@ export default function DailyQuizPage() {
                 <Alert className="border-primary/50 bg-primary/5">
                   <AlertCircle className="h-4 w-4 text-primary" />
                   <AlertDescription className="text-primary ml-2">
-                    This is the same quiz for all users today. Your questions will change tomorrow!
+                    {isFreePlan
+                      ? "Free plan includes 5 daily quiz questions. Upgrade for full daily quiz."
+                      : "This is the same quiz for all users today. Your questions will change tomorrow!"}
                   </AlertDescription>
                 </Alert>
 

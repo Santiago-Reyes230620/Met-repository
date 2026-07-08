@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/client";
 
-const DAILY_FREE_LIMIT = 5; // 5 exercises per day for free users
+const DAILY_FREE_LIMIT = 30; // 30 exercises per day for free users
 
 export function useDailyLimit(isFreeUser = true) {
   const { user } = useAuth();

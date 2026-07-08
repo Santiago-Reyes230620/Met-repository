@@ -1,7 +1,7 @@
 export type PlanId = "free" | "pro" | "premium";
 
 export const FEATURES_BY_PLAN: Record<PlanId, string[]> = {
-  free: ["grammar", "vocabulary", "reading"],
+  free: ["grammar", "vocabulary", "reading", "quiz"],
   pro: ["grammar", "vocabulary", "reading", "listening", "speaking", "writing", "quiz"],
   premium: [
     "grammar",

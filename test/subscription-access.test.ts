@@ -10,6 +10,10 @@ describe("planHasAccess", () => {
     expect(planHasAccess("free", "listening")).toBe(false);
   });
 
+  it("permite quiz diario para free", () => {
+    expect(planHasAccess("free", "quiz")).toBe(true);
+  });
+
   it("permite writing para pro y premium", () => {
     expect(planHasAccess("pro", "writing")).toBe(true);
     expect(planHasAccess("premium", "writing")).toBe(true);

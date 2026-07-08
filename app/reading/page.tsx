@@ -49,10 +49,12 @@ export default function ReadingPage() {
   const [difficulty, setDifficulty] = useState<string>("all");
 
   const getFallbackPassages = useCallback(() => {
-    return FALLBACK_READING_CONTENT.filter((passage) => {
+    const filtered = FALLBACK_READING_CONTENT.filter((passage) => {
       return difficulty !== "all" ? passage.difficulty === difficulty : true;
     });
-  }, [difficulty]);
+
+    return isFree() ? filtered.slice(0, 10) : filtered;
+  }, [difficulty, isFree]);
 
   const fetchPassages = useCallback(async () => {
     setLoading(true);
@@ -63,7 +65,8 @@ export default function ReadingPage() {
         query = query.eq("difficulty", difficulty);
       }
 
-      const { data: passagesData, error: passagesError } = await query.range(0, 1999);
+      const maxPassages = isFree() ? 10 : 2000;
+      const { data: passagesData, error: passagesError } = await query.range(0, maxPassages - 1);
 
       if (passagesError) throw passagesError;
 
@@ -81,7 +84,8 @@ export default function ReadingPage() {
 
       const nonEmptyPassages = passagesWithQuestions.filter((passage) => passage.questions.length > 0);
       const fallbackPassages = getFallbackPassages();
-      setPassages(nonEmptyPassages.length > 0 ? nonEmptyPassages : fallbackPassages);
+      const limitedPassages = isFree() ? nonEmptyPassages.slice(0, 10) : nonEmptyPassages;
+      setPassages(limitedPassages.length > 0 ? limitedPassages : fallbackPassages);
       setCurrentPassageIndex(0);
       setCurrentQuestionIndex(0);
       setSelectedAnswer(null);
@@ -100,7 +104,7 @@ export default function ReadingPage() {
     } finally {
       setLoading(false);
     }
-  }, [difficulty, getFallbackPassages]);
+  }, [difficulty, getFallbackPassages, isFree]);
 
   useEffect(() => {
     if (!authLoading && !user) {

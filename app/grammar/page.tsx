@@ -53,12 +53,14 @@ export default function GrammarPage() {
   const [showDailyLimit, setShowDailyLimit] = useState(false);
 
   const getFallbackExercises = useCallback(() => {
-    return FALLBACK_GRAMMAR_EXERCISES.filter((exercise) => {
+    const filtered = FALLBACK_GRAMMAR_EXERCISES.filter((exercise) => {
       const matchesCategory = selectedCategory ? exercise.category === selectedCategory : true;
       const matchesDifficulty = difficulty !== "all" ? exercise.difficulty === difficulty : true;
       return matchesCategory && matchesDifficulty;
     });
-  }, [selectedCategory, difficulty]);
+
+    return isFree() ? filtered.slice(0, 30) : filtered;
+  }, [selectedCategory, difficulty, isFree]);
 
   const fetchExercises = useCallback(async () => {
     setLoading(true);
@@ -73,14 +75,16 @@ export default function GrammarPage() {
         query = query.eq("difficulty", difficulty);
       }
 
-      const { data, error } = await query.range(0, 4999);
+      const maxItems = isFree() ? 30 : 5000;
+      const { data, error } = await query.range(0, maxItems - 1);
 
       if (error) throw error;
 
       const fetchedExercises = (data || []) as GrammarExercise[];
       const fallbackExercises = getFallbackExercises();
 
-      setExercises(fetchedExercises.length > 0 ? fetchedExercises : fallbackExercises);
+      const limitedFetched = isFree() ? fetchedExercises.slice(0, 30) : fetchedExercises;
+      setExercises(limitedFetched.length > 0 ? limitedFetched : fallbackExercises);
       setCurrentIndex(0);
       setSelectedAnswer(null);
       setShowResult(false);
@@ -97,7 +101,7 @@ export default function GrammarPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedCategory, difficulty, getFallbackExercises]);
+  }, [selectedCategory, difficulty, getFallbackExercises, isFree]);
 
   useEffect(() => {
     if (!authLoading && !user) {

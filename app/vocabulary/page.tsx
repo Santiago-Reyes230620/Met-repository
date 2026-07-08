@@ -44,10 +44,12 @@ export default function VocabularyPage() {
   const [difficulty, setDifficulty] = useState<string>("all");
 
   const getFallbackExercises = useCallback(() => {
-    return FALLBACK_VOCABULARY_EXERCISES.filter((exercise) => {
+    const filtered = FALLBACK_VOCABULARY_EXERCISES.filter((exercise) => {
       return difficulty !== "all" ? exercise.difficulty === difficulty : true;
     });
-  }, [difficulty]);
+
+    return isFree() ? filtered.slice(0, 30) : filtered;
+  }, [difficulty, isFree]);
 
   const fetchExercises = useCallback(async () => {
     setLoading(true);
@@ -58,14 +60,16 @@ export default function VocabularyPage() {
         query = query.eq("difficulty", difficulty);
       }
 
-      const { data, error } = await query.range(0, 4999);
+      const maxItems = isFree() ? 30 : 5000;
+      const { data, error } = await query.range(0, maxItems - 1);
 
       if (error) throw error;
 
       const fetchedExercises = (data || []) as VocabularyExercise[];
       const fallbackExercises = getFallbackExercises();
 
-      setExercises(fetchedExercises.length > 0 ? fetchedExercises : fallbackExercises);
+      const limitedFetched = isFree() ? fetchedExercises.slice(0, 30) : fetchedExercises;
+      setExercises(limitedFetched.length > 0 ? limitedFetched : fallbackExercises);
       setCurrentIndex(0);
       setSelectedAnswer(null);
       setShowResult(false);
@@ -82,7 +86,7 @@ export default function VocabularyPage() {
     } finally {
       setLoading(false);
     }
-  }, [difficulty, getFallbackExercises]);
+  }, [difficulty, getFallbackExercises, isFree]);
 
   useEffect(() => {
     if (!authLoading && !user) {
