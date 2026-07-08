@@ -1195,7 +1195,17 @@ export default function DailyQuizPage() {
 
   const handleStartQuiz = () => {
     if (quizState.dailyQuestions.length === 0) {
-      initializeQuiz();
+      const today = new Date().toISOString().split("T")[0];
+      const filtered = shuffleWithSeed(questionPool, today);
+      const dailyQuestions = filtered.slice(0, quizQuestionCount);
+
+      setQuizState((prev) => ({
+        ...prev,
+        dailyQuestions,
+        selectedAnswers: new Array(quizQuestionCount).fill(null),
+        quizStarted: true,
+        timeRemaining: 10 * 60,
+      }));
       return;
     }
 
@@ -1204,6 +1214,15 @@ export default function DailyQuizPage() {
       quizStarted: true,
       timeRemaining: 10 * 60,
     }));
+  };
+
+  const handleOpenMockExam = () => {
+    if (isFreePlan) {
+      router.push("/pricing?plan=premium");
+      return;
+    }
+
+    router.push("/mock-exams");
   };
 
   const handleAnswerSelect = (answerIndex: number) => {
@@ -1394,9 +1413,9 @@ export default function DailyQuizPage() {
                 <Button
                   variant="outline"
                   className="w-full h-12 text-lg"
-                  onClick={() => router.push("/mock-exams")}
+                  onClick={handleOpenMockExam}
                 >
-                  Open General MET Mock Exam
+                  {isFreePlan ? "Unlock General MET Mock Exam" : "Open General MET Mock Exam"}
                 </Button>
               </CardContent>
             </Card>
