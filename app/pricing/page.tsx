@@ -85,7 +85,7 @@ function PricingPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
-  const paymentProvider = process.env.NEXT_PUBLIC_PAYMENT_PROVIDER || "stripe";
+  const paymentProvider = process.env.NEXT_PUBLIC_PAYMENT_PROVIDER || "mercadopago";
 
   useEffect(() => {
     if (!authLoading && !user) {
