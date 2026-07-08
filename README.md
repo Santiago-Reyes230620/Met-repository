@@ -122,3 +122,23 @@ Repite el mismo checklist en dominio productivo y valida:
 ## Proximo paso recomendado
 
 Agregar pruebas automatizadas para hooks criticos como limite diario, suscripcion y progreso de metas.
+
+## Activar cobro real con Stripe
+
+1. Define estas variables de entorno en tu hosting (ej. Vercel):
+	- NEXT_PUBLIC_PAYMENT_PROVIDER=stripe
+	- STRIPE_SECRET_KEY
+	- NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+	- STRIPE_WEBHOOK_SECRET
+	- STRIPE_PRICE_ID_PRO_MONTHLY
+	- STRIPE_PRICE_ID_PRO_YEARLY
+	- STRIPE_PRICE_ID_PREMIUM_MONTHLY
+	- STRIPE_PRICE_ID_PREMIUM_YEARLY
+	- NEXT_PUBLIC_APP_URL
+2. Ejecuta validacion automatica:
+	- npm run verify:stripe
+3. Si la validacion pasa, publica/redeploya.
+4. Configura webhook en Stripe:
+	- URL: https://tu-dominio.com/api/stripe/webhook
+	- Eventos minimos: checkout.session.completed, customer.subscription.updated, customer.subscription.deleted
+5. Haz una compra real de bajo monto para confirmar end-to-end.
