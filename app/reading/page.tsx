@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useDailyLimit } from "@/hooks/use-daily-limit";
 import { supabase, ReadingPassage, ReadingQuestion } from "@/lib/supabase/client";
+import { FALLBACK_READING_CONTENT } from "@/lib/fallback-content";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { PaywallAlert } from "@/components/shared/PaywallAlert";
@@ -72,7 +73,8 @@ export default function ReadingPage() {
         })
       );
 
-      setPassages(passagesWithQuestions);
+      const nonEmptyPassages = passagesWithQuestions.filter((passage) => passage.questions.length > 0);
+      setPassages(nonEmptyPassages.length > 0 ? nonEmptyPassages : FALLBACK_READING_CONTENT);
       setCurrentPassageIndex(0);
       setCurrentQuestionIndex(0);
       setSelectedAnswer(null);

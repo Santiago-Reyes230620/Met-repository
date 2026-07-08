@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useDailyLimit } from "@/hooks/use-daily-limit";
 import { supabase, VocabularyExercise } from "@/lib/supabase/client";
+import { FALLBACK_VOCABULARY_EXERCISES } from "@/lib/fallback-content";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { DailyLimitAlert } from "@/components/shared/DailyLimitAlert";
@@ -54,7 +55,13 @@ export default function VocabularyPage() {
       const { data, error } = await query.limit(30);
 
       if (error) throw error;
-      setExercises(data || []);
+
+      const fetchedExercises = (data || []) as VocabularyExercise[];
+      const fallbackExercises = FALLBACK_VOCABULARY_EXERCISES.filter((exercise) => {
+        return difficulty !== "all" ? exercise.difficulty === difficulty : true;
+      });
+
+      setExercises(fetchedExercises.length > 0 ? fetchedExercises : fallbackExercises);
       setCurrentIndex(0);
       setSelectedAnswer(null);
       setShowResult(false);

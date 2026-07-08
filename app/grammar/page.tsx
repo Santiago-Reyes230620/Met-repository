@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useDailyLimit } from "@/hooks/use-daily-limit";
 import { supabase, GrammarExercise } from "@/lib/supabase/client";
+import { FALLBACK_GRAMMAR_EXERCISES } from "@/lib/fallback-content";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,7 +68,15 @@ export default function GrammarPage() {
       const { data, error } = await query.limit(30);
 
       if (error) throw error;
-      setExercises(data || []);
+
+      const fetchedExercises = (data || []) as GrammarExercise[];
+      const fallbackExercises = FALLBACK_GRAMMAR_EXERCISES.filter((exercise) => {
+        const matchesCategory = selectedCategory ? exercise.category === selectedCategory : true;
+        const matchesDifficulty = difficulty !== "all" ? exercise.difficulty === difficulty : true;
+        return matchesCategory && matchesDifficulty;
+      });
+
+      setExercises(fetchedExercises.length > 0 ? fetchedExercises : fallbackExercises);
       setCurrentIndex(0);
       setSelectedAnswer(null);
       setShowResult(false);
