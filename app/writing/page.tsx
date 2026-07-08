@@ -617,6 +617,17 @@ export default function WritingPage() {
     setFilteredExercises(filtered);
   }, [exercises, categoryFilter, difficultyFilter]);
 
+  // If filters leave the list empty, automatically reset to show all exercises.
+  useEffect(() => {
+    if (exercises.length === 0) return;
+
+    const hasActiveFilter = categoryFilter !== 'All' || difficultyFilter !== 'All';
+    if (filteredExercises.length === 0 && hasActiveFilter) {
+      setCategoryFilter('All');
+      setDifficultyFilter('All');
+    }
+  }, [exercises.length, filteredExercises.length, categoryFilter, difficultyFilter]);
+
   const evaluateAnswer = (answer: string, exercise: WritingExercise): EvaluationResult => {
     const wordCount = answer.trim().split(/\s+/).length;
     const meetsMinWords = wordCount >= exercise.minWords;
@@ -737,7 +748,7 @@ export default function WritingPage() {
         <div className="flex items-center justify-center flex-1">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading writing exercises...</p>
+              <p className="text-muted-foreground">Loading writing exercises...</p>
           </div>
         </div>
         <Footer />
@@ -857,7 +868,7 @@ export default function WritingPage() {
                     <BookOpen className="h-8 w-8 text-indigo-600" />
                     Writing Practice
                   </h1>
-                  <p className="text-gray-600">
+                  <p className="text-muted-foreground">
                     Improve your English writing with {filteredExercises.length} diverse exercises
                   </p>
                 </div>
@@ -903,7 +914,7 @@ export default function WritingPage() {
                             {exercise.minWords} words
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600 mt-3 line-clamp-2">{exercise.prompt}</p>
+                        <p className="text-sm text-muted-foreground mt-3 line-clamp-2">{exercise.prompt}</p>
                       </CardContent>
                     </Card>
                   ))}
@@ -912,7 +923,18 @@ export default function WritingPage() {
                 {filteredExercises.length === 0 && (
                   <Card>
                     <CardContent className="pt-6">
-                      <p className="text-center text-gray-600">No exercises match your filters.</p>
+                      <p className="text-center text-muted-foreground">No exercises match your filters.</p>
+                      <div className="mt-4 flex justify-center">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setCategoryFilter('All');
+                            setDifficultyFilter('All');
+                          }}
+                        >
+                          Reset Filters
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -933,7 +955,7 @@ export default function WritingPage() {
 
                 {/* Exercise Card */}
                 <Card className="bg-background/90 backdrop-blur border border-border/50">
-                  <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 pb-6">
+                  <CardHeader className="bg-primary/10 pb-6">
                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="text-2xl mb-2">{selectedExercise.title}</CardTitle>
@@ -956,8 +978,8 @@ export default function WritingPage() {
                   <CardContent className="pt-6 space-y-6">
                     {/* Prompt */}
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-2">Task</h3>
-                      <p className="text-gray-700 text-lg leading-relaxed">{selectedExercise.prompt}</p>
+                      <h3 className="font-semibold text-foreground mb-2">Task</h3>
+                      <p className="text-foreground text-lg leading-relaxed">{selectedExercise.prompt}</p>
                     </div>
 
                     {/* Tips */}
@@ -970,7 +992,7 @@ export default function WritingPage() {
 
                     {/* Requirements */}
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-3">Requirements</h3>
+                      <h3 className="font-semibold text-foreground mb-3">Requirements</h3>
                       <div className="space-y-2">
                         {selectedExercise.requirements.map((req, i) => (
                           <div key={i} className="flex items-center gap-2 text-sm">
@@ -983,14 +1005,14 @@ export default function WritingPage() {
                               className={
                                 evaluation && evaluation.keyPointsCovered.includes(req)
                                   ? 'text-green-700'
-                                  : 'text-gray-700'
+                                  : 'text-foreground'
                               }
                             >
                               {req}
                             </span>
                           </div>
                         ))}
-                        <p className="text-xs text-gray-500 mt-3">
+                        <p className="text-xs text-muted-foreground mt-3">
                           Minimum: {selectedExercise.minWords} words
                         </p>
                       </div>
@@ -998,7 +1020,7 @@ export default function WritingPage() {
 
                     {/* Textarea */}
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-2">Your Answer</h3>
+                      <h3 className="font-semibold text-foreground mb-2">Your Answer</h3>
                       <Textarea
                         placeholder="Type your response here..."
                         value={userAnswer}
@@ -1007,7 +1029,7 @@ export default function WritingPage() {
                         className="min-h-48 p-4 resize-vertical"
                       />
                       <div className="flex items-center justify-between mt-2">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                           <span
                             className={
                               userAnswer.trim().split(/\s+/).length >= selectedExercise.minWords
@@ -1056,7 +1078,7 @@ export default function WritingPage() {
                 {/* Evaluation Results */}
                 {evaluation && (
                   <Card className="border-t-4 border-t-indigo-500 bg-background/90 backdrop-blur border border-border/50">
-                    <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50">
+                    <CardHeader className="bg-primary/10">
                       <CardTitle>Evaluation Results</CardTitle>
                     </CardHeader>
 
