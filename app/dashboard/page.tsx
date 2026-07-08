@@ -8,6 +8,7 @@ import { useGoal } from "@/hooks/use-goal";
 import { useBadges } from "@/hooks/use-badges";
 import { useMockExams } from "@/hooks/use-mock-exams";
 import { useWeeklyChallenges } from "@/hooks/use-weekly-challenges";
+import { useSubscription } from "@/hooks/use-subscription";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { GoalProgress } from "@/components/GoalProgress";
@@ -104,6 +105,7 @@ const skillCards = [
 export default function DashboardPage() {
   const { user, profile, session, loading } = useAuth();
   const { targetScore, deadline, overallScore, daysRemaining, progressPercentage } = useGoal();
+  const { subscription } = useSubscription();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isSyncingCheckout, setIsSyncingCheckout] = useState(false);
@@ -172,6 +174,7 @@ export default function DashboardPage() {
   const grammarScore = profile?.grammar_score || 0;
   const vocabularyScore = profile?.vocabulary_score || 0;
   const readingScore = profile?.reading_score || 0;
+  const isPremium = subscription?.plan_id === "premium";
   const totalScore = Math.round((grammarScore + vocabularyScore + readingScore) / 3);
 
   const progressItems = [
@@ -365,6 +368,32 @@ export default function DashboardPage() {
                   })}
                 </div>
               </div>
+
+              <Card className="premium-card">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl md:text-2xl">Premium Benefits</CardTitle>
+                  <CardDescription className="text-base">
+                    {isPremium
+                      ? "Access your active Premium workspace and tools."
+                      : "Unlock study plans, analytics, reports, guides, support, sessions, and certificates."}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="relative z-10">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Link href={isPremium ? "/premium" : "/pricing?plan=premium"}>
+                      <Button className="bg-gradient-to-r from-primary to-chart-2 hover:scale-[1.02] transition-all duration-300">
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        {isPremium ? "Open Premium Hub" : "Upgrade to Premium"}
+                      </Button>
+                    </Link>
+                    {isPremium && (
+                      <p className="text-sm text-muted-foreground self-center">
+                        Premium utilities are enabled on your account.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Sidebar */}

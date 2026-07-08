@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { BookOpen, GraduationCap, LogOut, User, BarChart3, Menu, X, CreditCard } from "lucide-react";
+import { BookOpen, GraduationCap, LogOut, User, BarChart3, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -133,6 +133,16 @@ export function Navbar() {
               Pricing
             </Button>
           </Link>
+          <Link href="/premium">
+            <Button
+              onClick={() => mobile && setIsOpen(false)}
+              variant="ghost"
+              className={`${mobile ? "w-full justify-start" : ""} text-base`}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Premium Hub
+            </Button>
+          </Link>
         </>
       ) : null}
     </>
@@ -230,6 +240,13 @@ export function Navbar() {
                   >
                     <User className="mr-3 h-4 w-4" />
                     <span>Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/premium")}
+                    className="p-3 cursor-pointer"
+                  >
+                    <Sparkles className="mr-3 h-4 w-4" />
+                    <span>Premium Hub</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

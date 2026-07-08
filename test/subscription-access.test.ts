@@ -25,6 +25,24 @@ describe("planHasAccess", () => {
     expect(planHasAccess("premium", "mock-exams")).toBe(true);
   });
 
+  it("beneficios premium avanzados son exclusivos para premium", () => {
+    const premiumOnly = [
+      "advanced-analytics",
+      "priority-support",
+      "study-plans",
+      "progress-reports",
+      "tutoring",
+      "exam-guides",
+      "certificate",
+    ];
+
+    for (const feature of premiumOnly) {
+      expect(planHasAccess("free", feature)).toBe(false);
+      expect(planHasAccess("pro", feature)).toBe(false);
+      expect(planHasAccess("premium", feature)).toBe(true);
+    }
+  });
+
   it("rechaza features desconocidos", () => {
     expect(planHasAccess("premium", "coaching")).toBe(false);
   });

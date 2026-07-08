@@ -194,3 +194,54 @@ export type UserProgress = {
   time_spent: number;
   points_earned: number;
 };
+
+export type PremiumStudyPlan = {
+  id: string;
+  user_id: string;
+  exam_date?: string | null;
+  weekly_hours: number;
+  focus_area: string;
+  plan_json: Array<{ week: string; task: string; hours: number }>;
+  created_at: string;
+};
+
+export type PremiumProgressReport = {
+  id: string;
+  user_id: string;
+  report_month: string;
+  average_score: number;
+  grammar_score: number;
+  vocabulary_score: number;
+  reading_score: number;
+  listening_score: number;
+  speaking_score: number;
+  writing_score: number;
+  summary?: string | null;
+  created_at: string;
+};
+
+export type PremiumSupportRequest = {
+  id: string;
+  user_id: string;
+  subject: string;
+  message: string;
+  status: "open" | "in_review" | "resolved";
+  priority: "normal" | "high";
+  created_at: string;
+};
+
+export type PremiumStrategySession = {
+  id: string;
+  user_id: string;
+  topic: string;
+  slot_text: string;
+  status: "booked" | "completed" | "cancelled";
+  created_at: string;
+};
+
+export type PremiumCertificate = {
+  id: string;
+  user_id: string;
+  average_score: number;
+  issued_at: string;
+};
