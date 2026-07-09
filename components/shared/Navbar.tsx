@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { getUserDisplayName, getUserInitial } from "@/lib/user-display";
 
 export function Navbar() {
   const { user, profile, signOut } = useAuth();
@@ -37,15 +38,13 @@ export function Navbar() {
     setIsOpen(false);
   };
 
-  const getInitials = () => {
-    if (!profile?.full_name) return "U";
-    return profile.full_name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  const displayName = getUserDisplayName({
+    fullName: profile?.full_name,
+    metadataFullName: typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null,
+    email: profile?.email || user?.email,
+  });
+  const userEmail = profile?.email || user?.email || "";
+  const userInitial = getUserInitial(displayName);
 
   const NavLinks = ({ mobile = false }: { mobile?: boolean }) => (
     <>
@@ -196,12 +195,12 @@ export function Navbar() {
                       <div className="flex items-center space-x-3 px-4">
                         <Avatar className="h-10 w-10 border-2 border-primary/20">
                           <AvatarFallback className="bg-gradient-to-br from-primary to-chart-2 text-primary-foreground font-semibold">
-                            {getInitials()}
+                            {userInitial}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium">{profile?.full_name}</p>
-                          <p className="text-xs text-muted-foreground">{profile?.email}</p>
+                          <p className="font-medium">{displayName}</p>
+                          <p className="text-xs text-muted-foreground">{userEmail}</p>
                         </div>
                       </div>
                       <Button
@@ -222,15 +221,15 @@ export function Navbar() {
                 <DropdownMenuTrigger asChild className="hidden md:block">
                   <Avatar className="h-11 w-11 rounded-full border-2 border-primary/20 hover:scale-105 transition-transform">
                     <AvatarFallback className="bg-gradient-to-br from-primary to-chart-2 text-primary-foreground font-semibold">
-                      {getInitials()}
+                      {userInitial}
                     </AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-60" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal p-3">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-semibold">{profile?.full_name}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{profile?.email}</p>
+                      <p className="text-sm font-semibold">{displayName}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{userEmail}</p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />

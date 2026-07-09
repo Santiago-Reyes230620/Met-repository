@@ -19,6 +19,7 @@ import { WeeklyChallengeDisplay } from "@/components/WeeklyChallengeDisplay";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/custom-progress";
+import { getUserDisplayName, getUserFirstName } from "@/lib/user-display";
 import {
   BookOpen,
   MessageSquareText,
@@ -174,6 +175,12 @@ export default function DashboardPage() {
   const grammarScore = profile?.grammar_score || 0;
   const vocabularyScore = profile?.vocabulary_score || 0;
   const readingScore = profile?.reading_score || 0;
+  const displayName = getUserDisplayName({
+    fullName: profile?.full_name,
+    metadataFullName: typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null,
+    email: profile?.email || user?.email,
+  });
+  const firstName = getUserFirstName(displayName);
   const isPremium = subscription?.plan_id === "premium";
   const totalScore = Math.round((grammarScore + vocabularyScore + readingScore) / 3);
 
@@ -201,7 +208,7 @@ export default function DashboardPage() {
                   <span className="text-sm font-medium">Keep up the great work!</span>
                 </div>
                 <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2">
-                  Welcome back, <span className="text-gradient">{profile?.full_name?.split(" ")[0] || "Student"}</span>!
+                  Welcome back, <span className="text-gradient">{firstName}</span>!
                 </h1>
                 <p className="text-muted-foreground text-lg">
                   Continue your journey to mastering the Michigan English Test.

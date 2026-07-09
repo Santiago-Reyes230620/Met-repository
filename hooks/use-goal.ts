@@ -10,34 +10,43 @@ export const useGoal = () => {
   const [overallScore, setOverallScore] = useState<number>(0);
   const [daysRemaining, setDaysRemaining] = useState<number>(0);
   const [progressPercentage, setProgressPercentage] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (profile) {
-      setTargetScore(profile.target_score || null);
-      setDeadline(profile.target_deadline || null);
-
-      const computedOverallScore = calculateOverallScoreFromProfile(profile);
-      setOverallScore(computedOverallScore);
-
-      // Calculate days remaining
-      if (profile.target_deadline) {
-        const today = new Date();
-        const target = new Date(profile.target_deadline);
-        const diff = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        setDaysRemaining(Math.max(0, diff));
-      }
-
-      // Calculate progress percentage
-      setProgressPercentage(calculateProgressPercentage(computedOverallScore, profile.target_score));
-
-      setLoading(false);
+    if (!profile) {
+      setTargetScore(null);
+      setDeadline(null);
+      setOverallScore(0);
+      setDaysRemaining(0);
+      setProgressPercentage(0);
+      return;
     }
+
+    setTargetScore(profile.target_score || null);
+    setDeadline(profile.target_deadline || null);
+
+    const computedOverallScore = calculateOverallScoreFromProfile(profile);
+    setOverallScore(computedOverallScore);
+
+    // Calculate days remaining
+    if (profile.target_deadline) {
+      const today = new Date();
+      const target = new Date(profile.target_deadline);
+      const diff = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      setDaysRemaining(Math.max(0, diff));
+    } else {
+      setDaysRemaining(0);
+    }
+
+    // Calculate progress percentage
+    setProgressPercentage(calculateProgressPercentage(computedOverallScore, profile.target_score));
   }, [profile]);
 
   const setGoal = useCallback(
     async (newTargetScore: number, newDeadline: string) => {
-      if (!user) return;
+      if (!user) {
+        throw new Error('No authenticated user found');
+      }
 
       try {
         setLoading(true);
