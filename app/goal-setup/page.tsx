@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoal } from "@/hooks/use-goal";
@@ -15,7 +15,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Target, AlertCircle, CheckCircle2, Calendar } from "lucide-react";
 
-export default function GoalSetupPage() {
+function GoalSetupContent() {
   const { user, loading: authLoading } = useAuth();
   const { setGoal, loading: goalLoading, targetScore, deadline: existingDeadline } = useGoal();
   const router = useRouter();
@@ -265,5 +265,22 @@ export default function GoalSetupPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function GoalSetupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-white border-t-transparent"></div>
+            <p className="mt-4 text-white">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <GoalSetupContent />
+    </Suspense>
   );
 }
