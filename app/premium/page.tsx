@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
 import { supabase, PremiumCertificate, PremiumProgressReport, PremiumStrategySession, PremiumStudyPlan, PremiumSupportRequest } from "@/lib/supabase/client";
+import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { PaywallAlert } from "@/components/shared/PaywallAlert";
@@ -168,7 +169,7 @@ export default function PremiumHubPage() {
 
     const errors = [plansRes.error, reportsRes.error, supportRes.error, sessionsRes.error, certsRes.error].filter(Boolean);
     if (errors.length > 0) {
-      setError("Some premium records could not be loaded. Run the latest migration if needed.");
+      setError(mapSupabaseErrorMessage(errors[0]));
     }
 
     setStudyPlanHistory((plansRes.data || []) as PremiumStudyPlan[]);
@@ -230,7 +231,7 @@ export default function PremiumHubPage() {
       .single();
 
     if (insertError) {
-      setError(insertError.message);
+      setError(mapSupabaseErrorMessage(insertError));
     } else if (data) {
       setStudyPlanHistory((prev) => [data as PremiumStudyPlan, ...prev].slice(0, 5));
     }
@@ -264,7 +265,7 @@ export default function PremiumHubPage() {
       .single();
 
     if (upsertError) {
-      setError(upsertError.message);
+      setError(mapSupabaseErrorMessage(upsertError));
     } else if (data) {
       setReportHistory((prev) => {
         const withoutCurrentMonth = prev.filter((r) => r.report_month !== (data as PremiumProgressReport).report_month);
@@ -292,7 +293,7 @@ export default function PremiumHubPage() {
       .single();
 
     if (insertError) {
-      setError(insertError.message);
+      setError(mapSupabaseErrorMessage(insertError));
     } else if (data) {
       setSupportSent(true);
       setSupportSubject("");
@@ -320,7 +321,7 @@ export default function PremiumHubPage() {
       .single();
 
     if (insertError) {
-      setError(insertError.message);
+      setError(mapSupabaseErrorMessage(insertError));
     } else if (data) {
       setSessionBooked(true);
       setSessionTopic("");
@@ -345,7 +346,7 @@ export default function PremiumHubPage() {
       .single();
 
     if (insertError) {
-      setError(insertError.message);
+      setError(mapSupabaseErrorMessage(insertError));
       setIssuingCertificate(false);
       return;
     }

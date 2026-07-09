@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoal } from "@/hooks/use-goal";
 import { Navbar } from "@/components/shared/Navbar";
@@ -17,13 +17,29 @@ import { Target, AlertCircle, CheckCircle2, Calendar } from "lucide-react";
 
 export default function GoalSetupPage() {
   const { user, loading: authLoading } = useAuth();
-  const { setGoal, loading: goalLoading } = useGoal();
+  const { setGoal, loading: goalLoading, targetScore, deadline: existingDeadline } = useGoal();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [score, setScore] = useState<number>(6.5);
   const [deadline, setDeadline] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState(false);
+
+  const isEditingExistingGoal = useMemo(
+    () => targetScore !== null || !!existingDeadline || searchParams.get("mode") === "edit",
+    [targetScore, existingDeadline, searchParams]
+  );
+
+  useEffect(() => {
+    if (targetScore !== null) {
+      setScore(targetScore);
+    }
+
+    if (existingDeadline) {
+      setDeadline(existingDeadline.split("T")[0]);
+    }
+  }, [targetScore, existingDeadline]);
 
   const getMinDate = () => {
     const today = new Date();
@@ -48,7 +64,7 @@ export default function GoalSetupPage() {
       await setGoal(score, deadline);
       setSuccess(true);
       setTimeout(() => {
-        router.push("/assessment");
+        router.push(isEditingExistingGoal ? "/dashboard" : "/assessment");
       }, 1500);
     } catch (err: any) {
       setError(err.message || "Failed to set goal");
@@ -84,9 +100,13 @@ export default function GoalSetupPage() {
                   <Target className="h-8 w-8 text-blue-400" />
                 </div>
               </div>
-              <CardTitle className="text-3xl text-white">Set Your MET Goal</CardTitle>
+              <CardTitle className="text-3xl text-white">
+                {isEditingExistingGoal ? "Update Your MET Goal" : "Set Your MET Goal"}
+              </CardTitle>
               <CardDescription className="text-slate-300 text-base">
-                Define your target score and deadline to get a personalized learning plan
+                {isEditingExistingGoal
+                  ? "Adjust your target score and deadline any time based on your progress"
+                  : "Define your target score and deadline to get a personalized learning plan"}
               </CardDescription>
             </CardHeader>
 
@@ -95,7 +115,7 @@ export default function GoalSetupPage() {
                 <Alert className="bg-green-500/20 border-green-500/50">
                   <CheckCircle2 className="h-4 w-4 text-green-400" />
                   <AlertDescription className="text-green-300 ml-2">
-                    Goal saved! Taking you to assessment...
+                    {isEditingExistingGoal ? "Goal updated! Returning to dashboard..." : "Goal saved! Taking you to assessment..."}
                   </AlertDescription>
                 </Alert>
               )}
@@ -226,7 +246,13 @@ export default function GoalSetupPage() {
                 disabled={!deadline || goalLoading || success}
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white py-6 text-lg font-semibold disabled:opacity-50"
               >
-                {goalLoading ? "Setting Goal..." : success ? "Goal Set!" : "Continue to Assessment"}
+                {goalLoading
+                  ? "Saving Goal..."
+                  : success
+                  ? "Goal Saved!"
+                  : isEditingExistingGoal
+                  ? "Save Goal Changes"
+                  : "Continue to Assessment"}
               </Button>
 
               <p className="text-center text-xs text-slate-400">

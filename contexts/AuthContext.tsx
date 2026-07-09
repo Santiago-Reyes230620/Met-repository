@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile } from '@/lib/supabase/client';
+import { mapSupabaseErrorMessage } from '@/lib/supabase-error';
 import { useRouter } from 'next/navigation';
 
 type AuthContextType = {
@@ -101,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
 
     if (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error fetching profile:', mapSupabaseErrorMessage(error));
     } else if (!data) {
       // Profile doesn't exist, try to create it
       const user = (await supabase.auth.getUser()).data.user;
@@ -121,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
 
         if (createError) {
-          console.error('Error creating profile:', createError);
+          console.error('Error creating profile:', mapSupabaseErrorMessage(createError));
         } else {
           // Fetch the newly created profile
           const { data: newProfile } = await supabase
@@ -223,7 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(prev => prev ? { ...prev, ...updates } : null);
       return { error: null };
     } catch (error) {
-      return { error: error as Error };
+      return { error: new Error(mapSupabaseErrorMessage(error)) };
     }
   };
 

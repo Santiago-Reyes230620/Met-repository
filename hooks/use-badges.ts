@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { mapSupabaseErrorMessage } from '@/lib/supabase-error';
 
 export const useBadges = () => {
   const { user } = useAuth();
@@ -21,7 +22,7 @@ export const useBadges = () => {
         setUnlockedBadges(data);
       }
     } catch (error) {
-      console.error('Error fetching badges:', error);
+      console.error('Error fetching badges:', mapSupabaseErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -38,10 +39,10 @@ export const useBadges = () => {
             badge_id: badgeId,
           });
         
-        if (error && error.code !== 'UNIQUE_VIOLATION') throw error;
+        if (error && error.code !== 'UNIQUE_VIOLATION' && error.code !== '23505') throw error;
         return true;
       } catch (error) {
-        console.error('Error unlocking badge:', error);
+        console.error('Error unlocking badge:', mapSupabaseErrorMessage(error));
         return false;
       }
     },

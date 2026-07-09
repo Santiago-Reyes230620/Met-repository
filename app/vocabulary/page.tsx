@@ -7,6 +7,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useDailyLimit } from "@/hooks/use-daily-limit";
 import { supabase, VocabularyExercise } from "@/lib/supabase/client";
 import { FALLBACK_VOCABULARY_EXERCISES } from "@/lib/fallback-content";
+import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { DailyLimitAlert } from "@/components/shared/DailyLimitAlert";
@@ -76,7 +77,7 @@ export default function VocabularyPage() {
       setCorrectCount(0);
       setAnsweredCount(0);
     } catch (error) {
-      console.error("Error fetching exercises:", error);
+      console.error("Error fetching exercises:", mapSupabaseErrorMessage(error));
       setExercises(getFallbackExercises());
       setCurrentIndex(0);
       setSelectedAnswer(null);

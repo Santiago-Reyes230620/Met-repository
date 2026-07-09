@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripeClient, getPlanIdFromPriceId } from "@/lib/stripe";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 
 export const runtime = "nodejs";
 
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.text();
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (error) {
-    console.error("Webhook signature verification failed:", error);
+    console.error("Webhook signature verification failed:", mapSupabaseErrorMessage(error));
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -185,7 +186,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("Webhook handling failed:", error);
-    return NextResponse.json({ error: "Webhook handling failed" }, { status: 500 });
+    const message = mapSupabaseErrorMessage(error);
+    console.error("Webhook handling failed:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

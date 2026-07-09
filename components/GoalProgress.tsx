@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/custom-progress";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Target, TrendingUp, Calendar, AlertCircle, ArrowRight } from "lucide-react";
+import { Target, TrendingUp, Calendar, AlertCircle, ArrowRight, Pencil } from "lucide-react";
 import Link from "next/link";
 
 interface GoalProgressProps {
@@ -63,9 +63,17 @@ export function GoalProgress({
             <Target className="h-5 w-5 text-blue-500" />
             Goal Progress
           </CardTitle>
-          <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30">
-            {progressPercentage}% Complete
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30">
+              {progressPercentage}% Complete
+            </Badge>
+            <Link href="/goal-setup?mode=edit">
+              <Button size="sm" variant="outline" className="border-blue-500/40 text-blue-300 hover:bg-blue-500/10">
+                <Pencil className="h-4 w-4 mr-1" />
+                Edit Goal
+              </Button>
+            </Link>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6 relative z-10">

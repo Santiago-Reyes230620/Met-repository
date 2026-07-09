@@ -7,6 +7,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useDailyLimit } from "@/hooks/use-daily-limit";
 import { supabase, ReadingPassage, ReadingQuestion } from "@/lib/supabase/client";
 import { FALLBACK_READING_CONTENT } from "@/lib/fallback-content";
+import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { PaywallAlert } from "@/components/shared/PaywallAlert";
@@ -93,7 +94,7 @@ export default function ReadingPage() {
       setCorrectCount(0);
       setAnsweredCount(0);
     } catch (error) {
-      console.error("Error fetching passages:", error);
+      console.error("Error fetching passages:", mapSupabaseErrorMessage(error));
       setPassages(getFallbackPassages());
       setCurrentPassageIndex(0);
       setCurrentQuestionIndex(0);

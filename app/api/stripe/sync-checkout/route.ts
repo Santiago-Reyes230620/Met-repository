@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getStripeClient, getPlanIdFromPriceId } from "@/lib/stripe";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 
 type SyncBody = {
   sessionId?: string;
@@ -111,7 +112,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, planId, status });
   } catch (error) {
-    console.error("Stripe sync-checkout error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const message = mapSupabaseErrorMessage(error);
+    console.error("Stripe sync-checkout error:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

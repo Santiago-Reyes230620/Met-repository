@@ -1,16 +1,19 @@
 import { useState, useCallback } from 'react';
 import { supabase, MockExam, MockExamAttempt } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { mapSupabaseErrorMessage } from '@/lib/supabase-error';
 
 export const useMockExams = () => {
   const { user } = useAuth();
   const [mockExams, setMockExams] = useState<MockExam[]>([]);
   const [attempts, setAttempts] = useState<MockExamAttempt[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchMockExams = useCallback(async (difficulty?: string) => {
     try {
       setLoading(true);
+      setError(null);
       let query = supabase.from('mock_exams').select('*');
       
       if (difficulty) {
@@ -22,7 +25,9 @@ export const useMockExams = () => {
       
       setMockExams(data || []);
     } catch (error) {
-      console.error('Error fetching mock exams:', error);
+      const message = mapSupabaseErrorMessage(error);
+      console.error('Error fetching mock exams:', message);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -31,6 +36,7 @@ export const useMockExams = () => {
   const fetchUserAttempts = useCallback(async () => {
     if (!user) return;
     try {
+      setError(null);
       const { data, error } = await supabase
         .from('mock_exam_attempts')
         .select('*')
@@ -40,7 +46,9 @@ export const useMockExams = () => {
       if (error) throw error;
       setAttempts(data || []);
     } catch (error) {
-      console.error('Error fetching attempts:', error);
+      const message = mapSupabaseErrorMessage(error);
+      console.error('Error fetching attempts:', message);
+      setError(message);
     }
   }, [user]);
 
@@ -48,6 +56,7 @@ export const useMockExams = () => {
     async (mockExamId: string) => {
       if (!user) return;
       try {
+        setError(null);
         const { data, error } = await supabase
           .from('mock_exam_attempts')
           .insert({
@@ -64,7 +73,9 @@ export const useMockExams = () => {
         if (error) throw error;
         return data;
       } catch (error) {
-        console.error('Error starting mock exam:', error);
+        const message = mapSupabaseErrorMessage(error);
+        console.error('Error starting mock exam:', message);
+        setError(message);
         return null;
       }
     },
@@ -81,6 +92,7 @@ export const useMockExams = () => {
       sectionScores: Record<string, number>
     ) => {
       try {
+        setError(null);
         const { error } = await supabase
           .from('mock_exam_attempts')
           .update({
@@ -97,7 +109,9 @@ export const useMockExams = () => {
         if (error) throw error;
         return true;
       } catch (error) {
-        console.error('Error completing mock exam:', error);
+        const message = mapSupabaseErrorMessage(error);
+        console.error('Error completing mock exam:', message);
+        setError(message);
         return false;
       }
     },
@@ -108,6 +122,7 @@ export const useMockExams = () => {
     mockExams,
     attempts,
     loading,
+    error,
     fetchMockExams,
     fetchUserAttempts,
     startMockExam,

@@ -7,6 +7,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useDailyLimit } from "@/hooks/use-daily-limit";
 import { supabase, GrammarExercise } from "@/lib/supabase/client";
 import { FALLBACK_GRAMMAR_EXERCISES } from "@/lib/fallback-content";
+import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +52,7 @@ export default function GrammarPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [difficulty, setDifficulty] = useState<string>("all");
   const [showDailyLimit, setShowDailyLimit] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const getFallbackExercises = useCallback(() => {
     const filtered = FALLBACK_GRAMMAR_EXERCISES.filter((exercise) => {
@@ -91,7 +93,7 @@ export default function GrammarPage() {
       setCorrectCount(0);
       setAnsweredCount(0);
     } catch (error) {
-      console.error("Error fetching exercises:", error);
+      console.error("Error fetching exercises:", mapSupabaseErrorMessage(error));
       setExercises(getFallbackExercises());
       setCurrentIndex(0);
       setSelectedAnswer(null);
@@ -158,6 +160,7 @@ export default function GrammarPage() {
       setCurrentIndex((prev) => prev + 1);
       setSelectedAnswer(null);
       setShowResult(false);
+      setShowFeedback(false);
     }
   };
 
@@ -166,6 +169,7 @@ export default function GrammarPage() {
       setCurrentIndex((prev) => prev - 1);
       setSelectedAnswer(null);
       setShowResult(false);
+      setShowFeedback(false);
     }
   };
 
@@ -173,6 +177,7 @@ export default function GrammarPage() {
     setCurrentIndex(0);
     setSelectedAnswer(null);
     setShowResult(false);
+    setShowFeedback(false);
     setCorrectCount(0);
     setAnsweredCount(0);
   };
@@ -350,12 +355,34 @@ export default function GrammarPage() {
                       </RadioGroup>
 
                       {showResult && currentExercise?.explanation && (
-                        <Alert className="mt-6 border-chart-2/50 bg-chart-2/5">
-                          <Lightbulb className="h-4 w-4 text-chart-2" />
-                          <AlertDescription className="ml-2">
-                            {currentExercise.explanation}
-                          </AlertDescription>
-                        </Alert>
+                        <div className="mt-6 space-y-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowFeedback((prev) => !prev)}
+                          >
+                            {showFeedback ? "Hide Feedback" : "View Feedback"}
+                          </Button>
+
+                          {showFeedback && (
+                            <Alert className="border-chart-2/50 bg-chart-2/5">
+                              <Lightbulb className="h-4 w-4 text-chart-2" />
+                              <AlertDescription className="ml-2 space-y-2">
+                                <p>{currentExercise.explanation}</p>
+                                {!isFree() && (
+                                  <>
+                                    <p className="text-xs">
+                                      Why: precise grammar structure makes your response clearer and more accurate.
+                                    </p>
+                                    <p className="text-xs">
+                                      Example: build a sentence with the correct tense and one extra detail.
+                                    </p>
+                                  </>
+                                )}
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </div>
                       )}
 
                       <div className="flex justify-between mt-6">

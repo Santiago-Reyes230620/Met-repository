@@ -1,16 +1,19 @@
 import { useState, useCallback } from 'react';
 import { supabase, WeeklyChallenge, UserChallengeProgress } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { mapSupabaseErrorMessage } from '@/lib/supabase-error';
 
 export const useWeeklyChallenges = () => {
   const { user } = useAuth();
   const [currentChallenge, setCurrentChallenge] = useState<WeeklyChallenge | null>(null);
   const [userProgress, setUserProgress] = useState<UserChallengeProgress | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const getCurrentWeekChallenge = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const today = new Date();
       const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
       const weekStartStr = weekStart.toISOString().split('T')[0];
@@ -24,7 +27,9 @@ export const useWeeklyChallenges = () => {
       if (error && error.code !== 'PGRST116') throw error;
       setCurrentChallenge(data || null);
     } catch (error) {
-      console.error('Error fetching weekly challenge:', error);
+      const message = mapSupabaseErrorMessage(error);
+      console.error('Error fetching weekly challenge:', message);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -33,6 +38,7 @@ export const useWeeklyChallenges = () => {
   const getUserChallengeProgress = useCallback(async (challengeId: string) => {
     if (!user) return;
     try {
+      setError(null);
       const { data, error } = await supabase
         .from('user_challenge_progress')
         .select('*')
@@ -43,7 +49,9 @@ export const useWeeklyChallenges = () => {
       if (error && error.code !== 'PGRST116') throw error;
       setUserProgress(data || null);
     } catch (error) {
-      console.error('Error fetching user challenge progress:', error);
+      const message = mapSupabaseErrorMessage(error);
+      console.error('Error fetching user challenge progress:', message);
+      setError(message);
     }
   }, [user]);
 
@@ -51,6 +59,7 @@ export const useWeeklyChallenges = () => {
     async (challengeId: string, incrementBy: number) => {
       if (!user) return false;
       try {
+        setError(null);
         let newProgress = incrementBy;
         
         if (userProgress) {
@@ -89,7 +98,9 @@ export const useWeeklyChallenges = () => {
         setUserProgress(prev => prev ? { ...prev, current_progress: newProgress } : null);
         return true;
       } catch (error) {
-        console.error('Error updating challenge progress:', error);
+        const message = mapSupabaseErrorMessage(error);
+        console.error('Error updating challenge progress:', message);
+        setError(message);
         return false;
       }
     },
@@ -100,6 +111,7 @@ export const useWeeklyChallenges = () => {
     async (challengeId: string) => {
       if (!user) return false;
       try {
+        setError(null);
         const { error } = await supabase
           .from('user_challenge_progress')
           .update({
@@ -113,7 +125,9 @@ export const useWeeklyChallenges = () => {
         setUserProgress(prev => prev ? { ...prev, completed: true } : null);
         return true;
       } catch (error) {
-        console.error('Error completing challenge:', error);
+        const message = mapSupabaseErrorMessage(error);
+        console.error('Error completing challenge:', message);
+        setError(message);
         return false;
       }
     },
@@ -124,6 +138,7 @@ export const useWeeklyChallenges = () => {
     currentChallenge,
     userProgress,
     loading,
+    error,
     getCurrentWeekChallenge,
     getUserChallengeProgress,
     updateChallengeProgress,

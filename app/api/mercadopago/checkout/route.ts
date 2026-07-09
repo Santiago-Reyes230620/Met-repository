@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 
 type CheckoutBody = {
   planId: "pro" | "premium";
@@ -121,10 +122,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: checkoutUrl, preferenceId: data.id });
   } catch (error) {
-    console.error("Mercado Pago checkout error:", error);
+    const message = mapSupabaseErrorMessage(error);
+    console.error("Mercado Pago checkout error:", message);
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Internal server error",
+        error: message,
       },
       { status: 500 }
     );

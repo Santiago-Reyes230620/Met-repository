@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/client";
+import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 
 const DAILY_FREE_LIMIT = 30; // 30 exercises per day for free users
 
@@ -35,7 +36,7 @@ export function useDailyLimit(isFreeUser = true) {
         setDailyCount(count);
         setCanContinue(count < DAILY_FREE_LIMIT);
       } catch (err) {
-        console.error("Error fetching daily count:", err);
+        console.error("Error fetching daily count:", mapSupabaseErrorMessage(err));
       } finally {
         setLoading(false);
       }
@@ -89,7 +90,7 @@ export function useDailyLimit(isFreeUser = true) {
         setCanContinue(1 < DAILY_FREE_LIMIT);
       }
     } catch (err) {
-      console.error("Error incrementing daily count:", err);
+      console.error("Error incrementing daily count:", mapSupabaseErrorMessage(err));
     }
   };
 

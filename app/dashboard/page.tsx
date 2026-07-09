@@ -35,6 +35,8 @@ import {
   Mic,
   PenTool,
   Zap,
+  ClipboardCheck,
+  BarChart3,
 } from "lucide-react";
 
 const skillCards = [
@@ -91,6 +93,15 @@ const skillCards = [
     iconBg: "bg-violet-500/15",
     iconColor: "text-violet-500",
     count: "27 exercises",
+  },
+  {
+    title: "Placement Exam",
+    icon: Trophy,
+    href: "/assessment",
+    color: "from-cyan-500 to-blue-600",
+    iconBg: "bg-cyan-500/15",
+    iconColor: "text-cyan-400",
+    count: "30 questions",
   },
   {
     title: "Daily Quiz",
@@ -183,6 +194,17 @@ export default function DashboardPage() {
   const firstName = getUserFirstName(displayName);
   const isPremium = subscription?.plan_id === "premium";
   const totalScore = Math.round((grammarScore + vocabularyScore + readingScore) / 3);
+  const hasCompletedAssessment = !!profile?.has_completed_assessment;
+  const placementOverall = Math.round(
+    (
+      (profile?.grammar_score || 0) +
+      (profile?.vocabulary_score || 0) +
+      (profile?.reading_score || 0) +
+      (profile?.listening_score || 0) +
+      (profile?.speaking_score || 0) +
+      (profile?.writing_score || 0)
+    ) / 6
+  );
 
   const progressItems = [
     { label: "Grammar", icon: BookOpen, score: grammarScore, bg: "bg-primary/10", color: "text-primary" },
@@ -292,6 +314,44 @@ export default function DashboardPage() {
                 progressPercentage={progressPercentage}
                 hasGoal={!!targetScore}
               />
+
+              {/* Placement Exam */}
+              <Card className="premium-card border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-blue-500/10">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
+                        <ClipboardCheck className="h-5 w-5 text-cyan-400" />
+                        Placement Exam
+                      </CardTitle>
+                      <CardDescription className="text-base mt-1">
+                        30-question leveling exam with score and personalized feedback.
+                      </CardDescription>
+                    </div>
+                    {hasCompletedAssessment && (
+                      <div className="hidden sm:flex items-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2">
+                        <BarChart3 className="h-4 w-4 text-cyan-300" />
+                        <span className="text-sm text-cyan-200">Latest score: {placementOverall}/10</span>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="relative z-10">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      {hasCompletedAssessment
+                        ? "Retake the exam anytime to refresh your level and recommendations."
+                        : "Take it now so the platform can calculate your level and study plan."}
+                    </p>
+                    <Link href="/assessment">
+                      <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:scale-[1.02] transition-all duration-300 text-white">
+                        {hasCompletedAssessment ? "Retake Placement Exam" : "Start Placement Exam"}
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Recommended Exercises */}
               {profile && (

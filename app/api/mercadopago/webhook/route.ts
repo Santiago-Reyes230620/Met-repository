@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 import { createHmac, timingSafeEqual } from "crypto";
 
 export const runtime = "nodejs";
@@ -205,7 +206,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("Mercado Pago webhook error:", error);
-    return NextResponse.json({ error: "Webhook handling failed" }, { status: 500 });
+    const message = mapSupabaseErrorMessage(error);
+    console.error("Mercado Pago webhook error:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

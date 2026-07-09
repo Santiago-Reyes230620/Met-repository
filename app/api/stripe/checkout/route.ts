@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getStripeClient, getStripePriceId } from "@/lib/stripe";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 
 type CheckoutBody = {
   planId: "pro" | "premium";
@@ -104,7 +105,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error("Stripe checkout error:", error);
+    const normalizedSupabaseMessage = mapSupabaseErrorMessage(error);
+    console.error("Stripe checkout error:", normalizedSupabaseMessage);
 
     const details = error as {
       message?: string;
@@ -135,7 +137,7 @@ export async function POST(request: NextRequest) {
     // Always return the real error message to simplify production diagnostics.
     return NextResponse.json(
       {
-        error: message || "Unknown checkout error",
+        error: normalizedSupabaseMessage || message || "Unknown checkout error",
         code: code || "checkout_unknown_error",
       },
       { status: 500 }

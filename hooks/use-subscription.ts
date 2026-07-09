@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/client";
 import { planHasAccess } from "@/lib/subscription-access";
+import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 
 export interface UserSubscription {
   id: string;
@@ -45,7 +46,7 @@ export function useSubscription() {
           setSubscription(null);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch subscription");
+        setError(mapSupabaseErrorMessage(err));
       } finally {
         setLoading(false);
       }

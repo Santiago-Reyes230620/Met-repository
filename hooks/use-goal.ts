@@ -1,11 +1,10 @@
 import { useCallback, useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { calculateOverallScoreFromProfile, calculateProgressPercentage } from '@/lib/goal-calculations';
 import { mapSupabaseErrorMessage } from '@/lib/supabase-error';
 
 export const useGoal = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const [targetScore, setTargetScore] = useState<number | null>(null);
   const [deadline, setDeadline] = useState<string | null>(null);
   const [overallScore, setOverallScore] = useState<number>(0);
@@ -51,13 +50,10 @@ export const useGoal = () => {
 
       try {
         setLoading(true);
-        const { error } = await supabase
-          .from('profiles')
-          .update({
-            target_score: newTargetScore,
-            target_deadline: newDeadline,
-          })
-          .eq('id', user.id);
+        const { error } = await updateProfile({
+          target_score: newTargetScore,
+          target_deadline: newDeadline,
+        });
 
         if (error) throw error;
 
@@ -70,7 +66,7 @@ export const useGoal = () => {
         setLoading(false);
       }
     },
-    [user]
+    [user, updateProfile]
   );
 
   const getScoreDifference = useCallback(() => {

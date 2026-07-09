@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   CheckCircle2,
@@ -26,6 +27,8 @@ import {
   Flame,
   ChevronLeft,
   ChevronRight,
+  Play,
+  Square,
 } from "lucide-react";
 
 // Seeded random function for consistent daily shuffles
@@ -54,14 +57,25 @@ function shuffleWithSeed<T>(array: T[], seed: string): T[] {
 
 interface QuizQuestion {
   id: number;
-  category: "grammar" | "vocabulary" | "reading" | "listening";
+  category: "grammar" | "vocabulary" | "reading" | "listening" | "speaking" | "writing";
+  responseMode?: "choice" | "writing";
   question: string;
-  options: string[];
-  correctAnswer: number;
+  options?: string[];
+  correctAnswer?: number;
+  expectedKeywords?: string[];
   explanation: string;
   passage?: string;
   scenario?: string;
 }
+
+const QUIZ_CATEGORIES: QuizQuestion["category"][] = [
+  "grammar",
+  "vocabulary",
+  "reading",
+  "listening",
+  "speaking",
+  "writing",
+];
 
 // Comprehensive question pool
 const questionPool: QuizQuestion[] = [
@@ -1112,15 +1126,141 @@ const questionPool: QuizQuestion[] = [
     correctAnswer: 2,
     explanation: "The therapist asks the patient to 'practice declining one thing you would normally say yes to.'"
   },
+  {
+    id: 101,
+    category: "speaking",
+    scenario: "In a speaking task, a candidate says: 'I prefer studying in the morning because my mind is clearer and I can focus better.'",
+    question: "Which response best expands this speaking answer with a clear reason and example?",
+    options: [
+      "Morning is fine.",
+      "I like mornings because I can focus, for example I review vocabulary before classes and remember more.",
+      "It depends.",
+      "Studying is important."
+    ],
+    correctAnswer: 1,
+    explanation: "A strong speaking response includes a reason plus a concrete example."
+  },
+  {
+    id: 102,
+    category: "speaking",
+    scenario: "A student answers: 'Technology helps education.'",
+    question: "How can this response be improved for a speaking exam?",
+    options: [
+      "Keep it very short.",
+      "Add one supporting reason and one real-life example.",
+      "Repeat the same sentence slowly.",
+      "Change the topic completely."
+    ],
+    correctAnswer: 1,
+    explanation: "MET speaking quality improves when ideas are supported with clear reasons and examples."
+  },
+  {
+    id: 103,
+    category: "speaking",
+    scenario: "Prompt: Describe a challenge you overcame.",
+    question: "Which structure gives the clearest speaking answer?",
+    options: [
+      "Challenge -> Action -> Result",
+      "Result -> random details",
+      "One sentence only",
+      "No personal details"
+    ],
+    correctAnswer: 0,
+    explanation: "A clear structure helps fluency and coherence in speaking tasks."
+  },
+  {
+    id: 104,
+    category: "speaking",
+    scenario: "A candidate speaks with many long pauses.",
+    question: "What is the best strategy to improve fluency?",
+    options: [
+      "Speak faster without thinking",
+      "Use simple connectors like 'first', 'because', and 'for example'",
+      "Memorize difficult vocabulary only",
+      "Avoid answering fully"
+    ],
+    correctAnswer: 1,
+    explanation: "Simple connectors improve flow and reduce pauses during speaking."
+  },
+  {
+    id: 105,
+    category: "writing",
+    responseMode: "writing",
+    expectedKeywords: ["flexibility", "discipline", "online learning"],
+    question: "Which sentence is the best topic sentence for a paragraph about online learning?",
+    options: [
+      "Online learning exists.",
+      "Online learning offers flexibility, but students need discipline to succeed.",
+      "Many people use computers.",
+      "Education is important."
+    ],
+    correctAnswer: 1,
+    explanation: "A good topic sentence is specific and previews the main idea."
+  },
+  {
+    id: 106,
+    category: "writing",
+    responseMode: "writing",
+    expectedKeywords: ["evidence", "examples", "support"],
+    question: "What is the best way to support a claim in academic writing?",
+    options: [
+      "Use only opinions",
+      "Provide examples or evidence",
+      "Repeat the same sentence",
+      "Use very long words"
+    ],
+    correctAnswer: 1,
+    explanation: "Strong writing supports claims with examples, facts, or clear reasoning."
+  },
+  {
+    id: 107,
+    category: "writing",
+    responseMode: "writing",
+    expectedKeywords: ["topic sentence", "supporting details", "conclusion"],
+    question: "Choose the most coherent paragraph order.",
+    options: [
+      "Conclusion -> Example -> Topic sentence",
+      "Topic sentence -> Supporting details -> Conclusion",
+      "Supporting details -> New topic -> Unrelated detail",
+      "Question -> Question -> Question"
+    ],
+    correctAnswer: 1,
+    explanation: "Clear paragraph organization improves coherence and readability."
+  },
+  {
+    id: 108,
+    category: "writing",
+    responseMode: "writing",
+    expectedKeywords: ["clear", "specific", "details"],
+    question: "Which revision improves clarity?",
+    options: [
+      "The thing was good in many ways and stuff.",
+      "The program improved test scores by 12% in six months.",
+      "It was kind of nice and maybe effective.",
+      "There were things that happened."
+    ],
+    correctAnswer: 1,
+    explanation: "Precise language and specific details make writing clearer."
+  },
 ];
+
+type QuizAnswer = number | string | null;
 
 interface QuizState {
   currentQuestionIndex: number;
-  selectedAnswers: (number | null)[];
+  selectedAnswers: QuizAnswer[];
   timeRemaining: number;
   quizStarted: boolean;
   showResults: boolean;
+  completedAt: string | null;
   dailyQuestions: QuizQuestion[];
+}
+
+interface PersistedQuizPayload {
+  date: string;
+  planId: string;
+  dailyStreak: number;
+  quizState: QuizState;
 }
 
 export default function DailyQuizPage() {
@@ -1138,6 +1278,7 @@ export default function DailyQuizPage() {
     timeRemaining: 10 * 60,
     quizStarted: false,
     showResults: false,
+    completedAt: null,
     dailyQuestions: [],
   });
 
@@ -1145,6 +1286,113 @@ export default function DailyQuizPage() {
   const [accessResolved, setAccessResolved] = useState(false);
   const [animateScore, setAnimateScore] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [listeningNotice, setListeningNotice] = useState("");
+  const [isPlayingListeningAudio, setIsPlayingListeningAudio] = useState(false);
+  const [playingQuestionId, setPlayingQuestionId] = useState<number | null>(null);
+  const listeningUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  const getToday = () => new Date().toISOString().split("T")[0];
+
+  const stopListeningAudio = useCallback(() => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    listeningUtteranceRef.current = null;
+    setIsPlayingListeningAudio(false);
+    setPlayingQuestionId(null);
+  }, []);
+
+  const isAnswerProvided = useCallback((question: QuizQuestion, answer: QuizAnswer) => {
+    if (question.responseMode === "writing") {
+      return typeof answer === "string" && answer.trim().length > 0;
+    }
+
+    return typeof answer === "number";
+  }, []);
+
+  const isQuestionCorrect = useCallback((question: QuizQuestion, answer: QuizAnswer) => {
+    if (!isAnswerProvided(question, answer)) {
+      return false;
+    }
+
+    if (question.responseMode === "writing") {
+      const normalized = String(answer).toLowerCase().trim();
+      const keywords = (question.expectedKeywords || []).map((k) => k.toLowerCase());
+
+      if (keywords.length === 0) {
+        return normalized.split(/\s+/).length >= 6;
+      }
+
+      const matched = keywords.filter((keyword) => normalized.includes(keyword)).length;
+      const minMatches = Math.max(2, Math.ceil(keywords.length * 0.5));
+      return matched >= minMatches;
+    }
+
+    return typeof question.correctAnswer === "number" && answer === question.correctAnswer;
+  }, [isAnswerProvided]);
+
+  const getStorageKey = useCallback(
+    (targetPlanId: string) => {
+      if (!user?.id) return "";
+      return `daily-quiz:${user.id}:${targetPlanId}:${getToday()}`;
+    },
+    [user?.id]
+  );
+
+  const getDailyQuestions = useCallback(
+    (count: number) => {
+      const today = getToday();
+      const shuffled = shuffleWithSeed(questionPool, today);
+      const byCategory = QUIZ_CATEGORIES.reduce<Record<QuizQuestion["category"], QuizQuestion[]>>(
+        (acc, category) => {
+          acc[category] = shuffled.filter((q) => q.category === category);
+          return acc;
+        },
+        {
+          grammar: [],
+          vocabulary: [],
+          reading: [],
+          listening: [],
+          speaking: [],
+          writing: [],
+        }
+      );
+
+      const daySeed = Number(today.replaceAll("-", ""));
+      const rotationOffset = Number.isFinite(daySeed) ? daySeed % QUIZ_CATEGORIES.length : 0;
+      const rotatedCategories = [
+        ...QUIZ_CATEGORIES.slice(rotationOffset),
+        ...QUIZ_CATEGORIES.slice(0, rotationOffset),
+      ];
+
+      const requiredCategories = count >= QUIZ_CATEGORIES.length
+        ? QUIZ_CATEGORIES
+        : rotatedCategories.slice(0, count);
+
+      const selected: QuizQuestion[] = [];
+      const usedIds = new Set<number>();
+
+      requiredCategories.forEach((category) => {
+        const candidate = byCategory[category].find((q) => !usedIds.has(q.id));
+        if (candidate) {
+          selected.push(candidate);
+          usedIds.add(candidate.id);
+        }
+      });
+
+      for (const question of shuffled) {
+        if (selected.length >= count) break;
+        if (!usedIds.has(question.id)) {
+          selected.push(question);
+          usedIds.add(question.id);
+        }
+      }
+
+      return shuffleWithSeed(selected, `${today}-final`);
+    },
+    []
+  );
 
   // Separate auth effect
   useEffect(() => {
@@ -1154,50 +1402,143 @@ export default function DailyQuizPage() {
   }, [authLoading, user, router]);
 
   const initializeQuiz = useCallback(() => {
-    const today = new Date().toISOString().split("T")[0];
-    const filtered = shuffleWithSeed(questionPool, today);
-    const dailyQuestions = filtered.slice(0, quizQuestionCount);
+    const dailyQuestions = getDailyQuestions(quizQuestionCount);
+    const simulatedStreak = Math.floor(Math.random() * 30) + 1;
 
     setQuizState((prev) => ({
       ...prev,
+      currentQuestionIndex: 0,
       dailyQuestions,
       selectedAnswers: new Array(quizQuestionCount).fill(null),
+      timeRemaining: 10 * 60,
+      quizStarted: false,
+      showResults: false,
+      completedAt: null,
     }));
 
     // Simulate streak (in real app, fetch from database)
-    setDailyStreak(Math.floor(Math.random() * 30) + 1);
-  }, [quizQuestionCount]);
+    setDailyStreak(simulatedStreak);
+  }, [getDailyQuestions, quizQuestionCount]);
 
   useEffect(() => {
     if (authLoading || subLoading || !user) return;
 
-    initializeQuiz();
+    const dailyQuestions = getDailyQuestions(quizQuestionCount);
+    const storageKey = getStorageKey(planId);
+    let restored = false;
+
+    if (storageKey && typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem(storageKey);
+        if (raw) {
+          const parsed = JSON.parse(raw) as PersistedQuizPayload;
+          const sameDate = parsed.date === getToday();
+          const samePlan = parsed.planId === planId;
+          const hasValidQuestions =
+            Array.isArray(parsed.quizState.dailyQuestions) &&
+            parsed.quizState.dailyQuestions.length === quizQuestionCount;
+
+          if (sameDate && samePlan && hasValidQuestions) {
+            const expectedIds = dailyQuestions.map((q) => q.id).join(",");
+            const savedIds = parsed.quizState.dailyQuestions.map((q) => q.id).join(",");
+
+            if (expectedIds === savedIds) {
+              setQuizState((prev) => ({
+                ...prev,
+                ...parsed.quizState,
+                completedAt: parsed.quizState.completedAt || null,
+              }));
+              setDailyStreak(parsed.dailyStreak || Math.floor(Math.random() * 30) + 1);
+              restored = true;
+            }
+          }
+        }
+      } catch {
+        // Ignore malformed local storage payloads and start fresh.
+      }
+    }
+
+    if (!restored) {
+      initializeQuiz();
+    }
+
     setShowPaywall(false);
     setAccessResolved(true);
-  }, [authLoading, subLoading, user, subscription?.plan_id, quizQuestionCount, initializeQuiz]);
+  }, [
+    authLoading,
+    subLoading,
+    user,
+    planId,
+    quizQuestionCount,
+    initializeQuiz,
+    getDailyQuestions,
+    getStorageKey,
+  ]);
+
+  useEffect(() => {
+    if (!user || authLoading || subLoading || !accessResolved) return;
+    const storageKey = getStorageKey(planId);
+    if (!storageKey || typeof window === "undefined") return;
+
+    const payload: PersistedQuizPayload = {
+      date: getToday(),
+      planId,
+      dailyStreak,
+      quizState,
+    };
+
+    window.localStorage.setItem(storageKey, JSON.stringify(payload));
+  }, [user, authLoading, subLoading, accessResolved, getStorageKey, planId, dailyStreak, quizState]);
 
   // Timer effect - only runs during active quiz
   useEffect(() => {
     if (!quizState.quizStarted || quizState.showResults) return;
 
     const interval = setInterval(() => {
+      let shouldAutoSubmit = false;
+
       setQuizState((prev) => {
         const newTime = prev.timeRemaining - 1;
         if (newTime <= 0) {
-          handleSubmitQuiz();
-          return prev;
+          shouldAutoSubmit = true;
+          return {
+            ...prev,
+            timeRemaining: 0,
+            quizStarted: false,
+            showResults: true,
+            completedAt: new Date().toISOString(),
+          };
         }
         return { ...prev, timeRemaining: newTime };
       });
+
+      if (shouldAutoSubmit) {
+        stopListeningAudio();
+        setAnimateScore(true);
+        setShowFeedback(false);
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [quizState.quizStarted, quizState.showResults]);
+  }, [quizState.quizStarted, quizState.showResults, stopListeningAudio]);
+
+  useEffect(() => {
+    setListeningNotice("");
+    stopListeningAudio();
+  }, [quizState.currentQuestionIndex, stopListeningAudio]);
+
+  useEffect(() => {
+    return () => {
+      stopListeningAudio();
+    };
+  }, [stopListeningAudio]);
 
   const handleStartQuiz = () => {
-    const today = new Date().toISOString().split("T")[0];
-    const filtered = shuffleWithSeed(questionPool, today);
-    const dailyQuestions = filtered.slice(0, quizQuestionCount);
+    if (quizState.completedAt && quizState.completedAt.startsWith(getToday())) {
+      return;
+    }
+
+    const dailyQuestions = getDailyQuestions(quizQuestionCount);
 
     setQuizState((prev) => ({
       ...prev,
@@ -1207,7 +1548,10 @@ export default function DailyQuizPage() {
       quizStarted: true,
       showResults: false,
       timeRemaining: 10 * 60,
+      completedAt: null,
     }));
+    setShowFeedback(false);
+    setListeningNotice("");
   };
 
   const mockExamHref = isFreePlan ? "/pricing?plan=premium" : "/mock-exams";
@@ -1215,6 +1559,15 @@ export default function DailyQuizPage() {
   const handleAnswerSelect = (answerIndex: number) => {
     const newAnswers = [...quizState.selectedAnswers];
     newAnswers[quizState.currentQuestionIndex] = answerIndex;
+    setQuizState((prev) => ({
+      ...prev,
+      selectedAnswers: newAnswers,
+    }));
+  };
+
+  const handleWritingAnswerChange = (value: string) => {
+    const newAnswers = [...quizState.selectedAnswers];
+    newAnswers[quizState.currentQuestionIndex] = value;
     setQuizState((prev) => ({
       ...prev,
       selectedAnswers: newAnswers,
@@ -1240,28 +1593,54 @@ export default function DailyQuizPage() {
   };
 
   const handleSubmitQuiz = () => {
+    stopListeningAudio();
     setQuizState((prev) => ({
       ...prev,
       quizStarted: false,
       showResults: true,
+      completedAt: new Date().toISOString(),
     }));
     setAnimateScore(true);
+    setShowFeedback(false);
   };
 
-  const handleRetakeQuiz = () => {
-    const today = new Date().toISOString().split("T")[0];
-    const filtered = shuffleWithSeed(questionPool, today);
-    const dailyQuestions = filtered.slice(0, quizQuestionCount);
+  const handlePlayListeningAudio = (question: QuizQuestion) => {
+    if (!question.scenario) {
+      setListeningNotice("Audio script unavailable for this question.");
+      return;
+    }
 
-    setQuizState({
-      currentQuestionIndex: 0,
-      selectedAnswers: new Array(quizQuestionCount).fill(null),
-      timeRemaining: 10 * 60,
-      quizStarted: false,
-      showResults: false,
-      dailyQuestions,
-    });
-    setAnimateScore(false);
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      setListeningNotice("Audio playback is not available in this browser.");
+      return;
+    }
+
+    if (isPlayingListeningAudio && playingQuestionId === question.id) {
+      stopListeningAudio();
+      return;
+    }
+
+    stopListeningAudio();
+
+    const utterance = new SpeechSynthesisUtterance(question.scenario);
+    utterance.lang = "en-US";
+    utterance.rate = 0.92;
+    utterance.pitch = 1;
+    utterance.onend = () => {
+      setIsPlayingListeningAudio(false);
+      setPlayingQuestionId(null);
+    };
+    utterance.onerror = () => {
+      setIsPlayingListeningAudio(false);
+      setPlayingQuestionId(null);
+      setListeningNotice("Could not play audio. Please try again.");
+    };
+
+    listeningUtteranceRef.current = utterance;
+    setIsPlayingListeningAudio(true);
+    setPlayingQuestionId(question.id);
+    setListeningNotice("");
+    window.speechSynthesis.speak(utterance);
   };
 
   if (authLoading || subLoading || (user && !accessResolved)) {
@@ -1289,6 +1668,7 @@ export default function DailyQuizPage() {
   if (!user) return null;
 
   const { currentQuestionIndex, selectedAnswers, timeRemaining, quizStarted, showResults, dailyQuestions } = quizState;
+  const completedToday = Boolean(quizState.completedAt && quizState.completedAt.startsWith(getToday()));
 
   // Quiz start screen
   if (!quizStarted && !showResults) {
@@ -1300,6 +1680,8 @@ export default function DailyQuizPage() {
       vocabulary: dailyQuestions.filter((q) => q.category === "vocabulary").length,
       reading: dailyQuestions.filter((q) => q.category === "reading").length,
       listening: dailyQuestions.filter((q) => q.category === "listening").length,
+      speaking: dailyQuestions.filter((q) => q.category === "speaking").length,
+      writing: dailyQuestions.filter((q) => q.category === "writing").length,
     };
 
     return (
@@ -1337,7 +1719,7 @@ export default function DailyQuizPage() {
                 <CardDescription>Mixed category quiz with adaptive difficulty</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="p-4 bg-primary/5 rounded-lg text-center">
                     <p className="text-2xl font-bold text-primary">{totalDailyQuestions}</p>
                     <p className="text-sm text-muted-foreground">Questions</p>
@@ -1365,6 +1747,8 @@ export default function DailyQuizPage() {
                         { name: "Vocabulary", count: categoryBreakdown.vocabulary, color: "bg-chart-2" },
                         { name: "Reading", count: categoryBreakdown.reading, color: "bg-chart-3" },
                         { name: "Listening", count: categoryBreakdown.listening, color: "bg-chart-4" },
+                        { name: "Speaking", count: categoryBreakdown.speaking, color: "bg-emerald-500" },
+                        { name: "Writing", count: categoryBreakdown.writing, color: "bg-amber-500" },
                       ] as const
                     ).map((cat) => (
                       <div key={cat.name}>
@@ -1386,7 +1770,9 @@ export default function DailyQuizPage() {
                 <Alert className="border-primary/50 bg-primary/5">
                   <AlertCircle className="h-4 w-4 text-primary" />
                   <AlertDescription className="text-primary ml-2">
-                    {isFreePlan
+                    {completedToday
+                      ? "You already completed today&apos;s quiz. A new quiz unlocks tomorrow."
+                      : isFreePlan
                       ? "Free plan includes 5 daily quiz questions. Upgrade for full daily quiz."
                       : "This is the same quiz for all users today. Your questions will change tomorrow!"}
                   </AlertDescription>
@@ -1395,9 +1781,10 @@ export default function DailyQuizPage() {
                 <Button
                   type="button"
                   onClick={handleStartQuiz}
+                  disabled={completedToday}
                   className="w-full h-12 text-lg bg-gradient-to-r from-primary to-chart-2 relative z-20 pointer-events-auto"
                 >
-                  Start Daily Quiz
+                  {completedToday ? "Completed Today" : "Start Daily Quiz"}
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
 
@@ -1449,7 +1836,7 @@ export default function DailyQuizPage() {
       );
     }
 
-    const answered = selectedAnswers.filter((a) => a !== null).length;
+    const answered = dailyQuestions.filter((question, idx) => isAnswerProvided(question, selectedAnswers[idx])).length;
     const minutes = Math.floor(timeRemaining / 60);
     const seconds = timeRemaining % 60;
     const isTimeRunningOut = timeRemaining < 120;
@@ -1503,7 +1890,36 @@ export default function DailyQuizPage() {
                   </div>
                 )}
 
-                {currentQuestion.scenario && (
+                {currentQuestion.category === "listening" && currentQuestion.scenario && (
+                  <div className="bg-muted/50 p-4 rounded-lg mb-6 border border-muted space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Press Play Audio and listen before answering.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handlePlayListeningAudio(currentQuestion)}
+                      className="gap-2"
+                    >
+                      {isPlayingListeningAudio && playingQuestionId === currentQuestion.id ? (
+                        <>
+                          <Square className="h-4 w-4" />
+                          Stop Audio
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4" />
+                          Play Audio
+                        </>
+                      )}
+                    </Button>
+                    {listeningNotice && (
+                      <p className="text-xs text-amber-600">{listeningNotice}</p>
+                    )}
+                  </div>
+                )}
+
+                {currentQuestion.scenario && currentQuestion.category !== "listening" && (
                   <div className="bg-muted/50 p-4 rounded-lg mb-6 border border-muted">
                     <p className="text-sm text-muted-foreground italic">{currentQuestion.scenario}</p>
                   </div>
@@ -1511,24 +1927,43 @@ export default function DailyQuizPage() {
 
                 <h2 className="text-xl md:text-2xl font-bold mb-6">{currentQuestion.question}</h2>
 
-                <RadioGroup
-                  value={selectedAnswers[currentQuestionIndex]?.toString() || ""}
-                  onValueChange={(val) => handleAnswerSelect(parseInt(val))}
-                >
+                {currentQuestion.responseMode === "writing" ? (
                   <div className="space-y-3">
-                    {currentQuestion.options.map((option, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center space-x-3 p-4 border border-border rounded-lg hover:bg-primary/5 transition-colors cursor-pointer"
-                      >
-                        <RadioGroupItem value={idx.toString()} id={`option-${idx}`} />
-                        <Label htmlFor={`option-${idx}`} className="cursor-pointer flex-1">
-                          {option}
-                        </Label>
-                      </div>
-                    ))}
+                    {(() => {
+                      const writingValue = selectedAnswers[currentQuestionIndex];
+                      return (
+                    <Textarea
+                      value={typeof writingValue === "string" ? writingValue : ""}
+                      onChange={(e) => handleWritingAnswerChange(e.target.value)}
+                      placeholder="Write your answer in English..."
+                      className="min-h-[150px]"
+                    />
+                      );
+                    })()}
+                    <p className="text-xs text-muted-foreground">
+                      Tip: Write at least 1-2 complete sentences.
+                    </p>
                   </div>
-                </RadioGroup>
+                ) : (
+                  <RadioGroup
+                    value={typeof selectedAnswers[currentQuestionIndex] === "number" ? selectedAnswers[currentQuestionIndex]?.toString() : ""}
+                    onValueChange={(val) => handleAnswerSelect(parseInt(val, 10))}
+                  >
+                    <div className="space-y-3">
+                      {(currentQuestion.options || []).map((option, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center space-x-3 p-4 border border-border rounded-lg hover:bg-primary/5 transition-colors cursor-pointer"
+                        >
+                          <RadioGroupItem value={idx.toString()} id={`option-${idx}`} />
+                          <Label htmlFor={`option-${idx}`} className="cursor-pointer flex-1">
+                            {option}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </RadioGroup>
+                )}
               </CardContent>
             </Card>
 
@@ -1570,37 +2005,48 @@ export default function DailyQuizPage() {
 
   // Results screen
   if (showResults) {
-    const correctAnswers = dailyQuestions.filter((q, idx) => selectedAnswers[idx] === q.correctAnswer).length;
+    const reviewItems = dailyQuestions.map((question, idx) => {
+      const answer = selectedAnswers[idx];
+      const isCorrect = isQuestionCorrect(question, answer);
+
+      return {
+        question,
+        answer,
+        isCorrect,
+      };
+    });
+
+    const correctAnswers = reviewItems.filter((item) => item.isCorrect).length;
     const scorePercentage = Math.round((correctAnswers / dailyQuestions.length) * 100);
 
     const categoryResults = {
       grammar: {
         total: dailyQuestions.filter((q) => q.category === "grammar").length,
-        correct: dailyQuestions.filter(
-          (q, idx) => q.category === "grammar" && selectedAnswers[idx] === q.correctAnswer
-        ).length,
+        correct: reviewItems.filter((item) => item.question.category === "grammar" && item.isCorrect).length,
       },
       vocabulary: {
         total: dailyQuestions.filter((q) => q.category === "vocabulary").length,
-        correct: dailyQuestions.filter(
-          (q, idx) => q.category === "vocabulary" && selectedAnswers[idx] === q.correctAnswer
-        ).length,
+        correct: reviewItems.filter((item) => item.question.category === "vocabulary" && item.isCorrect).length,
       },
       reading: {
         total: dailyQuestions.filter((q) => q.category === "reading").length,
-        correct: dailyQuestions.filter(
-          (q, idx) => q.category === "reading" && selectedAnswers[idx] === q.correctAnswer
-        ).length,
+        correct: reviewItems.filter((item) => item.question.category === "reading" && item.isCorrect).length,
       },
       listening: {
         total: dailyQuestions.filter((q) => q.category === "listening").length,
-        correct: dailyQuestions.filter(
-          (q, idx) => q.category === "listening" && selectedAnswers[idx] === q.correctAnswer
-        ).length,
+        correct: reviewItems.filter((item) => item.question.category === "listening" && item.isCorrect).length,
+      },
+      speaking: {
+        total: dailyQuestions.filter((q) => q.category === "speaking").length,
+        correct: reviewItems.filter((item) => item.question.category === "speaking" && item.isCorrect).length,
+      },
+      writing: {
+        total: dailyQuestions.filter((q) => q.category === "writing").length,
+        correct: reviewItems.filter((item) => item.question.category === "writing" && item.isCorrect).length,
       },
     };
 
-    const wrongAnswers = dailyQuestions.filter((q, idx) => selectedAnswers[idx] !== q.correctAnswer);
+    const wrongAnswers = reviewItems.filter((item) => !item.isCorrect);
 
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-card">
@@ -1621,6 +2067,15 @@ export default function DailyQuizPage() {
                     {correctAnswers} out of {dailyQuestions.length} correct
                   </p>
                 </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowFeedback((prev) => !prev)}
+                  className="mb-6"
+                >
+                  {showFeedback ? "Hide Feedback" : "View Feedback"}
+                </Button>
 
                 {scorePercentage >= 80 && (
                   <Alert className="mb-6 border-green-500/50 bg-green-500/5">
@@ -1661,6 +2116,8 @@ export default function DailyQuizPage() {
                     { name: "Vocabulary", ...categoryResults.vocabulary, color: "bg-chart-2" },
                     { name: "Reading", ...categoryResults.reading, color: "bg-chart-3" },
                     { name: "Listening", ...categoryResults.listening, color: "bg-chart-4" },
+                    { name: "Speaking", ...categoryResults.speaking, color: "bg-emerald-500" },
+                    { name: "Writing", ...categoryResults.writing, color: "bg-amber-500" },
                   ] as const
                 ).map((cat) => (
                   <div key={cat.name}>
@@ -1673,7 +2130,7 @@ export default function DailyQuizPage() {
                     <div className="w-full bg-secondary/20 rounded-full h-2">
                       <div
                         className={`${cat.color} h-2 rounded-full`}
-                        style={{ width: `${(cat.correct / cat.total) * 100}%` }}
+                        style={{ width: `${cat.total > 0 ? (cat.correct / cat.total) * 100 : 0}%` }}
                       />
                     </div>
                   </div>
@@ -1682,37 +2139,62 @@ export default function DailyQuizPage() {
             </Card>
 
             {/* Wrong Answers Review */}
-            {wrongAnswers.length > 0 && (
+            {showFeedback && wrongAnswers.length > 0 && (
               <Card className="premium-card mb-8">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <XCircle className="h-5 w-5 text-destructive" />
-                    Review Wrong Answers
+                    Feedback
                   </CardTitle>
-                  <CardDescription>{wrongAnswers.length} question(s) to review</CardDescription>
+                  <CardDescription>
+                    {isFreePlan
+                      ? `${wrongAnswers.length} question(s) to review (free: quick feedback)`
+                      : `${wrongAnswers.length} question(s) to review (premium/pro: detailed feedback)`}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {wrongAnswers.map((question) => (
-                    <div key={question.id} className="border-l-4 border-destructive pl-4 py-2">
-                      <p className="font-medium mb-2">{question.question}</p>
-                      {question.passage && (
-                        <p className="text-sm text-muted-foreground italic mb-2">Passage: {question.passage}</p>
+                  {wrongAnswers.map((item) => (
+                    <div key={item.question.id} className="border-l-4 border-destructive pl-4 py-2">
+                      <p className="font-medium mb-2">{item.question.question}</p>
+                      {item.question.passage && (
+                        <p className="text-sm text-muted-foreground italic mb-2">Passage: {item.question.passage}</p>
                       )}
-                      {question.scenario && (
-                        <p className="text-sm text-muted-foreground italic mb-2">Scenario: {question.scenario}</p>
+                      {item.question.scenario && item.question.category !== "listening" && (
+                        <p className="text-sm text-muted-foreground italic mb-2">Scenario: {item.question.scenario}</p>
                       )}
                       <div className="bg-destructive/5 p-3 rounded mb-2 border border-destructive/20">
                         <p className="text-sm">
-                          <span className="font-semibold">Your answer:</span> {question.options[selectedAnswers[dailyQuestions.indexOf(question)]!]}
+                          <span className="font-semibold">Your answer:</span>{" "}
+                          {typeof item.answer === "number"
+                            ? (item.question.options || [])[item.answer]
+                            : typeof item.answer === "string"
+                            ? item.answer
+                            : "No answer"}
                         </p>
-                        <p className="text-sm">
-                          <span className="font-semibold text-green-600">Correct answer:</span> {question.options[question.correctAnswer]}
-                        </p>
+                        {typeof item.question.correctAnswer === "number" && (
+                          <p className="text-sm">
+                            <span className="font-semibold text-green-600">Correct answer:</span>{" "}
+                            {(item.question.options || [])[item.question.correctAnswer]}
+                          </p>
+                        )}
+                        {item.question.responseMode === "writing" && (
+                          <p className="text-sm">
+                            <span className="font-semibold text-green-600">Expected focus:</span>{" "}
+                            {(item.question.expectedKeywords || []).join(", ")}
+                          </p>
+                        )}
                       </div>
-                      <div className="bg-green-500/5 p-3 rounded border border-green-500/20 flex gap-2">
-                        <Lightbulb className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-green-700">{question.explanation}</p>
-                      </div>
+                      {!isFreePlan && (
+                        <div className="bg-green-500/5 p-3 rounded border border-green-500/20 space-y-2">
+                          <div className="flex gap-2">
+                            <Lightbulb className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                            <p className="text-sm text-green-700">{item.question.explanation}</p>
+                          </div>
+                          <p className="text-xs text-green-800/90">
+                            Example: A stronger answer includes one clear reason and one concrete example.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </CardContent>
@@ -1729,10 +2211,12 @@ export default function DailyQuizPage() {
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              <Button onClick={handleRetakeQuiz} className="w-full h-12" variant="outline">
-                <Flame className="h-4 w-4 mr-2" />
-                Retake Today&apos;s Quiz
-              </Button>
+              <Alert className="border-primary/40 bg-primary/5">
+                <AlertCircle className="h-4 w-4 text-primary" />
+                <AlertDescription className="ml-2 text-primary">
+                  You can take the Daily Quiz once per day. Come back tomorrow for a new attempt.
+                </AlertDescription>
+              </Alert>
               <Button onClick={() => router.push("/dashboard")} className="w-full h-12 bg-gradient-to-r from-primary to-chart-2">
                 Back to Dashboard
                 <ArrowRight className="h-4 w-4 ml-2" />

@@ -1,25 +1,41 @@
 import { useState, useCallback } from 'react';
 import { supabase, AssessmentResult } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { isSupabaseMissingTableError, mapSupabaseErrorMessage } from '@/lib/supabase-error';
 
 export type AssessmentQuestion = {
   id: string;
   type: 'grammar' | 'vocabulary' | 'reading' | 'listening' | 'speaking' | 'writing';
   question: string;
+  passage?: string;
+  audio_text?: string;
+  response_mode?: 'choice' | 'speech';
+  expected_keywords?: string[];
   options?: string[];
   correct_answer?: string;
   difficulty: 'easy' | 'medium' | 'hard';
 };
 
 export const useAssessment = () => {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [results, setResults] = useState<AssessmentResult | null>(null);
 
+  type CalculatedScores = Pick<
+    AssessmentResult,
+    | 'grammar_score'
+    | 'vocabulary_score'
+    | 'reading_score'
+    | 'listening_score'
+    | 'speaking_score'
+    | 'writing_score'
+    | 'overall_score'
+  >;
+
   const calculateScores = useCallback(
-    (userAnswers: Record<string, string>): Partial<AssessmentResult> => {
+    (userAnswers: Record<string, string>): CalculatedScores => {
       const questions = getAssessmentQuestions();
       const scoreByType: Record<string, { correct: number; total: number }> = {
         grammar: { correct: 0, total: 0 },
@@ -32,11 +48,24 @@ export const useAssessment = () => {
 
       questions.forEach((q) => {
         scoreByType[q.type].total++;
-        if (
-          q.correct_answer &&
-          userAnswers[q.id] &&
-          userAnswers[q.id].toLowerCase() === q.correct_answer.toLowerCase()
-        ) {
+
+        const normalizedAnswer = (userAnswers[q.id] || '').trim().toLowerCase();
+        if (!normalizedAnswer) return;
+
+        if (q.response_mode === 'speech') {
+          const keywords = (q.expected_keywords || []).map((k) => k.toLowerCase());
+          if (keywords.length === 0) return;
+
+          const matched = keywords.filter((keyword) => normalizedAnswer.includes(keyword)).length;
+          const minMatches = Math.max(2, Math.ceil(keywords.length * 0.4));
+
+          if (matched >= minMatches) {
+            scoreByType[q.type].correct++;
+          }
+          return;
+        }
+
+        if (q.correct_answer && normalizedAnswer === q.correct_answer.toLowerCase()) {
           scoreByType[q.type].correct++;
         }
       });
@@ -93,32 +122,49 @@ export const useAssessment = () => {
           .select()
           .single();
 
-        if (error) throw error;
+        let savedResult: AssessmentResult | null = null;
 
-        // Update profile with scores and assessment completion
-        await supabase
-          .from('profiles')
-          .update({
-            grammar_score: scores.grammar_score,
-            vocabulary_score: scores.vocabulary_score,
-            reading_score: scores.reading_score,
-            listening_score: scores.listening_score,
-            speaking_score: scores.speaking_score,
-            writing_score: scores.writing_score,
-            has_completed_assessment: true,
-          })
-          .eq('id', user.id);
+        if (error) {
+          // Allow assessment completion even if historical table is missing in production.
+          if (!isSupabaseMissingTableError(error, ['assessment_results'])) {
+            throw error;
+          }
+        } else {
+          savedResult = data;
+        }
 
-        setResults(data);
-        return data;
+        // Update profile through AuthContext so dashboard hooks react immediately.
+        const { error: profileError } = await updateProfile({
+          grammar_score: scores.grammar_score,
+          vocabulary_score: scores.vocabulary_score,
+          reading_score: scores.reading_score,
+          listening_score: scores.listening_score,
+          speaking_score: scores.speaking_score,
+          writing_score: scores.writing_score,
+          has_completed_assessment: true,
+        });
+
+        if (profileError) throw profileError;
+
+        const finalResult: AssessmentResult =
+          savedResult ?? {
+            id: `local-${Date.now()}`,
+            user_id: user.id,
+            ...scores,
+            completed_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+          };
+
+        setResults(finalResult);
+        return finalResult;
       } catch (error) {
         console.error('Error submitting assessment:', error);
-        throw error;
+        throw new Error(mapSupabaseErrorMessage(error));
       } finally {
         setLoading(false);
       }
     },
-    [user, calculateScores]
+    [user, calculateScores, updateProfile]
   );
 
   return {
@@ -221,6 +267,8 @@ export const getAssessmentQuestions = (): AssessmentQuestion[] => [
   {
     id: 'read_1',
     type: 'reading',
+    passage:
+      'Climate scientists report that global average temperatures are rising because greenhouse gases trap heat in the atmosphere. This warming contributes to melting ice, stronger storms, and rising sea levels. Experts recommend reducing fossil fuel use and expanding clean energy to limit long-term damage.',
     question: 'What is the main idea of a text about climate change?',
     options: [
       'Weather patterns',
@@ -234,6 +282,8 @@ export const getAssessmentQuestions = (): AssessmentQuestion[] => [
   {
     id: 'read_2',
     type: 'reading',
+    passage:
+      'Regular exercise improves heart health, strengthens muscles, and supports mental well-being. Research also shows that physically active people often sleep better and manage stress more effectively than people with sedentary routines.',
     question: 'According to the passage, why is exercise important?',
     options: [
       'To lose weight',
@@ -247,6 +297,8 @@ export const getAssessmentQuestions = (): AssessmentQuestion[] => [
   {
     id: 'read_3',
     type: 'reading',
+    passage:
+      'The author explains each argument using evidence from recent studies and avoids emotional language. The text focuses on helping the reader understand the issue rather than persuading with strong personal opinions.',
     question: 'What can be inferred from the authors tone?',
     options: ['angry', 'informative', 'uncertain', 'bitter'],
     correct_answer: 'informative',
@@ -255,6 +307,8 @@ export const getAssessmentQuestions = (): AssessmentQuestion[] => [
   {
     id: 'read_4',
     type: 'reading',
+    passage:
+      'The city faced a paradox: improving roads reduced traffic in one district but increased congestion in neighboring areas. Officials realized that solving one transportation problem had created another unexpected one.',
     question: 'The word "paradox" in the passage means:',
     options: [
       'a contradiction',
@@ -268,6 +322,8 @@ export const getAssessmentQuestions = (): AssessmentQuestion[] => [
   {
     id: 'read_5',
     type: 'reading',
+    passage:
+      'To support her argument for flexible schedules, the author cites data from three companies where productivity increased after adopting remote and hybrid work policies.',
     question: 'Which statement best supports the authors argument?',
     options: [
       'Evidence A',
@@ -279,10 +335,14 @@ export const getAssessmentQuestions = (): AssessmentQuestion[] => [
     difficulty: 'hard',
   },
 
-  // Listening - 5 questions (text-based for now)
+  // Listening - 5 questions
   {
     id: 'list_1',
     type: 'listening',
+    audio_text:
+      'In today\'s tech update, we discuss how artificial intelligence tools are helping small businesses automate customer support and reduce response times.',
+    passage:
+      'In today\'s tech update, we discuss how artificial intelligence tools are helping small businesses automate customer support and reduce response times.',
     question: 'Listen and identify the main topic discussed.',
     options: ['Sports', 'Technology', 'Food', 'Travel'],
     correct_answer: 'Technology',
@@ -291,6 +351,10 @@ export const getAssessmentQuestions = (): AssessmentQuestion[] => [
   {
     id: 'list_2',
     type: 'listening',
+    audio_text:
+      'Let\'s meet at the library at 3 PM, then head to the study room on the second floor for our group session.',
+    passage:
+      'Let\'s meet at the library at 3 PM, then head to the study room on the second floor for our group session.',
     question: 'What time was mentioned in the conversation?',
     options: ['2 PM', '3 PM', '4 PM', '5 PM'],
     correct_answer: '3 PM',
@@ -299,6 +363,10 @@ export const getAssessmentQuestions = (): AssessmentQuestion[] => [
   {
     id: 'list_3',
     type: 'listening',
+    audio_text:
+      'I was honestly excited about the event because it was my first time presenting in front of a large audience.',
+    passage:
+      'I was honestly excited about the event because it was my first time presenting in front of a large audience.',
     question: 'How did the speaker feel about the event?',
     options: ['Disappointed', 'Excited', 'Neutral', 'Angry'],
     correct_answer: 'Excited',
@@ -307,6 +375,10 @@ export const getAssessmentQuestions = (): AssessmentQuestion[] => [
   {
     id: 'list_4',
     type: 'listening',
+    audio_text:
+      'I\'ll schedule a meeting for Friday and share the agenda by email so everyone can prepare in advance.',
+    passage:
+      'I\'ll schedule a meeting for Friday and share the agenda by email so everyone can prepare in advance.',
     question: 'What action will the speaker take next?',
     options: [
       'Call someone',
@@ -320,6 +392,10 @@ export const getAssessmentQuestions = (): AssessmentQuestion[] => [
   {
     id: 'list_5',
     type: 'listening',
+    audio_text:
+      'Even though we had delays this week, the team confirmed that all milestones will proceed as planned next month.',
+    passage:
+      'Even though we had delays this week, the team confirmed that all milestones will proceed as planned next month.',
     question: 'What is implied about the future plans?',
     options: [
       'They will be postponed',
@@ -331,45 +407,45 @@ export const getAssessmentQuestions = (): AssessmentQuestion[] => [
     difficulty: 'hard',
   },
 
-  // Speaking - 5 questions (self-assessment format)
+  // Speaking - 5 questions (voice or typed response)
   {
     id: 'speak_1',
     type: 'speaking',
-    question: 'Can you introduce yourself in English clearly?',
-    options: ['Not at all', 'Somewhat', 'Yes, confidently', 'Fluently'],
-    correct_answer: 'Yes, confidently',
+    question: 'Introduce yourself in English and mention your goals for this course.',
+    response_mode: 'speech',
+    expected_keywords: ['name', 'goal', 'english', 'study', 'improve'],
     difficulty: 'easy',
   },
   {
     id: 'speak_2',
     type: 'speaking',
-    question: 'Can you express opinions and justify them?',
-    options: ['Not at all', 'With difficulty', 'Reasonably well', 'Fluently'],
-    correct_answer: 'Reasonably well',
+    question: 'Give your opinion about online learning and explain at least one reason.',
+    response_mode: 'speech',
+    expected_keywords: ['opinion', 'because', 'online', 'learning', 'reason'],
     difficulty: 'medium',
   },
   {
     id: 'speak_3',
     type: 'speaking',
-    question: 'How well do you participate in group discussions?',
-    options: ['Avoid speaking', 'Participate minimally', 'Participate actively', 'Lead discussions'],
-    correct_answer: 'Participate actively',
+    question: 'Describe how you usually participate in group discussions.',
+    response_mode: 'speech',
+    expected_keywords: ['group', 'discussion', 'participate', 'ideas', 'speak'],
     difficulty: 'medium',
   },
   {
     id: 'speak_4',
     type: 'speaking',
-    question: 'Can you handle unexpected questions smoothly?',
-    options: ['No', 'Sometimes', 'Usually', 'Always'],
-    correct_answer: 'Usually',
+    question: 'Explain how you handle unexpected questions during a conversation.',
+    response_mode: 'speech',
+    expected_keywords: ['question', 'respond', 'think', 'answer', 'calm'],
     difficulty: 'hard',
   },
   {
     id: 'speak_5',
     type: 'speaking',
-    question: 'Do you speak without frequent pauses or hesitations?',
-    options: ['Rarely', 'Sometimes', 'Often', 'Almost always'],
-    correct_answer: 'Often',
+    question: 'Talk about a recent challenge and how you solved it.',
+    response_mode: 'speech',
+    expected_keywords: ['challenge', 'problem', 'solution', 'learned', 'result'],
     difficulty: 'hard',
   },
 
