@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { calculateOverallScoreFromProfile, calculateProgressPercentage } from '@/lib/goal-calculations';
+import { mapSupabaseErrorMessage } from '@/lib/supabase-error';
 
 export const useGoal = () => {
   const { user, profile } = useAuth();
@@ -64,7 +65,7 @@ export const useGoal = () => {
         setDeadline(newDeadline);
       } catch (error) {
         console.error('Error setting goal:', error);
-        throw error;
+        throw new Error(mapSupabaseErrorMessage(error));
       } finally {
         setLoading(false);
       }
