@@ -453,6 +453,35 @@ export default function SpeakingPage() {
     }
   }, [isRecording]);
 
+  const requestMicrophoneAccess = useCallback(async () => {
+    if (typeof window === "undefined") return false;
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("Microphone access is not supported by this browser");
+      return false;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => track.stop());
+      return true;
+    } catch (err) {
+      const micError = err as DOMException;
+
+      if (micError?.name === "NotAllowedError" || micError?.name === "PermissionDeniedError") {
+        setError("Microphone permission denied. Please enable it in your browser settings.");
+      } else if (micError?.name === "NotFoundError") {
+        setError("No microphone was found. Connect one and try again.");
+      } else if (micError?.name === "NotReadableError") {
+        setError("Microphone is busy in another app. Close that app and try again.");
+      } else {
+        setError("Could not access the microphone. Please try again.");
+      }
+
+      return false;
+    }
+  }, []);
+
   // Filter exercises when category/difficulty changes
   useEffect(() => {
     let filtered = speakingExercises;
@@ -487,15 +516,34 @@ export default function SpeakingPage() {
     };
   }, []);
 
-  const startRecording = () => {
+  const startRecording = async () => {
     if (!recognitionRef.current) {
       setError("Speech recognition is not available on this browser");
       return;
     }
+
+    if (typeof window !== "undefined" && !window.isSecureContext && window.location.hostname !== "localhost") {
+      setError("Microphone access requires HTTPS. Please open the app in a secure connection.");
+      return;
+    }
+
+    const hasMicAccess = await requestMicrophoneAccess();
+    if (!hasMicAccess) {
+      return;
+    }
+
     setTranscript("");
     setDetectedKeywords([]);
     setError(null);
-    recognitionRef.current.start();
+
+    try {
+      recognitionRef.current.start();
+    } catch (err) {
+      const recognitionError = err as DOMException;
+      if (recognitionError?.name !== "InvalidStateError") {
+        setError("Could not start recording. Please try again.");
+      }
+    }
   };
 
   const stopRecording = () => {

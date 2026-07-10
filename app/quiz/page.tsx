@@ -58,7 +58,7 @@ function shuffleWithSeed<T>(array: T[], seed: string): T[] {
 interface QuizQuestion {
   id: number;
   category: "grammar" | "vocabulary" | "reading" | "listening" | "speaking" | "writing";
-  responseMode?: "choice" | "writing";
+  responseMode?: "choice" | "writing" | "speech";
   question: string;
   options?: string[];
   correctAnswer?: number;
@@ -1129,6 +1129,8 @@ const questionPool: QuizQuestion[] = [
   {
     id: 101,
     category: "speaking",
+    responseMode: "speech",
+    expectedKeywords: ["morning", "focus", "example", "vocabulary", "remember"],
     scenario: "In a speaking task, a candidate says: 'I prefer studying in the morning because my mind is clearer and I can focus better.'",
     question: "Which response best expands this speaking answer with a clear reason and example?",
     options: [
@@ -1143,6 +1145,8 @@ const questionPool: QuizQuestion[] = [
   {
     id: 102,
     category: "speaking",
+    responseMode: "speech",
+    expectedKeywords: ["reason", "example", "technology", "education"],
     scenario: "A student answers: 'Technology helps education.'",
     question: "How can this response be improved for a speaking exam?",
     options: [
@@ -1157,6 +1161,8 @@ const questionPool: QuizQuestion[] = [
   {
     id: 103,
     category: "speaking",
+    responseMode: "speech",
+    expectedKeywords: ["challenge", "action", "result", "overcame"],
     scenario: "Prompt: Describe a challenge you overcame.",
     question: "Which structure gives the clearest speaking answer?",
     options: [
@@ -1171,6 +1177,8 @@ const questionPool: QuizQuestion[] = [
   {
     id: 104,
     category: "speaking",
+    responseMode: "speech",
+    expectedKeywords: ["first", "because", "for example", "fluency"],
     scenario: "A candidate speaks with many long pauses.",
     question: "What is the best strategy to improve fluency?",
     options: [
@@ -1287,10 +1295,15 @@ export default function DailyQuizPage() {
   const [animateScore, setAnimateScore] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [isSubmittingQuiz, setIsSubmittingQuiz] = useState(false);
   const [listeningNotice, setListeningNotice] = useState("");
   const [isPlayingListeningAudio, setIsPlayingListeningAudio] = useState(false);
   const [playingQuestionId, setPlayingQuestionId] = useState<number | null>(null);
+  const [speechSupported, setSpeechSupported] = useState(true);
+  const [isRecordingSpeech, setIsRecordingSpeech] = useState(false);
+  const [speechError, setSpeechError] = useState("");
   const listeningUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const speechRecognitionRef = useRef<any>(null);
 
   const getToday = () => new Date().toISOString().split("T")[0];
 
@@ -1304,7 +1317,7 @@ export default function DailyQuizPage() {
   }, []);
 
   const isAnswerProvided = useCallback((question: QuizQuestion, answer: QuizAnswer) => {
-    if (question.responseMode === "writing") {
+    if (question.responseMode === "writing" || question.responseMode === "speech") {
       return typeof answer === "string" && answer.trim().length > 0;
     }
 
@@ -1316,7 +1329,7 @@ export default function DailyQuizPage() {
       return false;
     }
 
-    if (question.responseMode === "writing") {
+    if (question.responseMode === "writing" || question.responseMode === "speech") {
       const normalized = String(answer).toLowerCase().trim();
       const keywords = (question.expectedKeywords || []).map((k) => k.toLowerCase());
 
@@ -1523,15 +1536,131 @@ export default function DailyQuizPage() {
   }, [quizState.quizStarted, quizState.showResults, stopListeningAudio]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setSpeechSupported(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      setIsRecordingSpeech(true);
+      setSpeechError("");
+    };
+
+    recognition.onerror = (event: any) => {
+      setSpeechError(`Microphone error: ${event.error}`);
+      setIsRecordingSpeech(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecordingSpeech(false);
+    };
+
+    speechRecognitionRef.current = recognition;
+
+    return () => {
+      if (speechRecognitionRef.current) {
+        speechRecognitionRef.current.abort();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     setListeningNotice("");
     stopListeningAudio();
+    setSpeechError("");
+
+    if (speechRecognitionRef.current && isRecordingSpeech) {
+      speechRecognitionRef.current.stop();
+    }
   }, [quizState.currentQuestionIndex, stopListeningAudio]);
 
   useEffect(() => {
     return () => {
       stopListeningAudio();
+
+      if (speechRecognitionRef.current) {
+        speechRecognitionRef.current.abort();
+      }
     };
   }, [stopListeningAudio]);
+
+  const startSpeechRecording = async () => {
+    if (!speechRecognitionRef.current) {
+      setSpeechError("Speech recognition is not available in this browser.");
+      return;
+    }
+
+    if (typeof window !== "undefined" && !window.isSecureContext && window.location.hostname !== "localhost") {
+      setSpeechError("Microphone access requires HTTPS.");
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setSpeechError("Microphone access is not supported by this browser.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => track.stop());
+      speechRecognitionRef.current.start();
+    } catch (err) {
+      const micError = err as DOMException;
+      if (micError?.name === "NotAllowedError" || micError?.name === "PermissionDeniedError") {
+        setSpeechError("Microphone permission denied. Enable it in browser settings.");
+      } else {
+        setSpeechError("Could not access the microphone.");
+      }
+    }
+  };
+
+  const stopSpeechRecording = () => {
+    if (speechRecognitionRef.current) {
+      speechRecognitionRef.current.stop();
+    }
+    setIsRecordingSpeech(false);
+  };
+
+  const handleSpeechTranscript = (text: string) => {
+    const newAnswers = [...quizState.selectedAnswers];
+    const prev = typeof newAnswers[quizState.currentQuestionIndex] === "string"
+      ? String(newAnswers[quizState.currentQuestionIndex])
+      : "";
+
+    newAnswers[quizState.currentQuestionIndex] = `${prev}${text}`;
+    setQuizState((prevState) => ({
+      ...prevState,
+      selectedAnswers: newAnswers,
+    }));
+  };
+
+  useEffect(() => {
+    const recognition = speechRecognitionRef.current;
+    if (!recognition) return;
+
+    recognition.onresult = (event: any) => {
+      let transcriptChunk = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const chunk = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          transcriptChunk += `${chunk} `;
+        }
+      }
+
+      if (transcriptChunk.trim()) {
+        handleSpeechTranscript(transcriptChunk);
+      }
+    };
+  }, [quizState.currentQuestionIndex, quizState.selectedAnswers]);
 
   const handleStartQuiz = () => {
     if (quizState.completedAt && quizState.completedAt.startsWith(getToday())) {
@@ -1593,13 +1722,18 @@ export default function DailyQuizPage() {
   };
 
   const handleSubmitQuiz = () => {
+    if (isSubmittingQuiz) return;
+
+    setIsSubmittingQuiz(true);
     stopListeningAudio();
+
     setQuizState((prev) => ({
       ...prev,
       quizStarted: false,
       showResults: true,
       completedAt: new Date().toISOString(),
     }));
+
     setAnimateScore(true);
     setShowFeedback(false);
   };
@@ -1927,15 +2061,55 @@ export default function DailyQuizPage() {
 
                 <h2 className="text-xl md:text-2xl font-bold mb-6">{currentQuestion.question}</h2>
 
-                {currentQuestion.responseMode === "writing" ? (
+                {currentQuestion.responseMode === "writing" || currentQuestion.responseMode === "speech" ? (
                   <div className="space-y-3">
+                    {currentQuestion.responseMode === "speech" && (
+                      <div className="space-y-3 rounded-lg border border-border p-4 bg-muted/30">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm text-muted-foreground">
+                            Speak your answer and we will transcribe it.
+                          </p>
+                          <Button
+                            type="button"
+                            variant={isRecordingSpeech ? "destructive" : "outline"}
+                            onClick={isRecordingSpeech ? stopSpeechRecording : startSpeechRecording}
+                            disabled={!speechSupported}
+                            className="gap-2"
+                          >
+                            {isRecordingSpeech ? (
+                              <>
+                                <Square className="h-4 w-4" />
+                                Stop Recording
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-4 w-4" />
+                                Start Speaking
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        {!speechSupported && (
+                          <p className="text-xs text-amber-600">
+                            Speech recognition is not supported in this browser. Use Chrome or Edge.
+                          </p>
+                        )}
+                        {speechError && (
+                          <p className="text-xs text-destructive">{speechError}</p>
+                        )}
+                      </div>
+                    )}
                     {(() => {
                       const writingValue = selectedAnswers[currentQuestionIndex];
                       return (
                     <Textarea
                       value={typeof writingValue === "string" ? writingValue : ""}
                       onChange={(e) => handleWritingAnswerChange(e.target.value)}
-                      placeholder="Write your answer in English..."
+                      placeholder={
+                        currentQuestion.responseMode === "speech"
+                          ? "Your spoken answer will appear here. You can also type edits."
+                          : "Write your answer in English..."
+                      }
                       className="min-h-[150px]"
                     />
                       );
@@ -1982,11 +2156,20 @@ export default function DailyQuizPage() {
               {currentQuestionIndex === dailyQuestions.length - 1 ? (
                 <Button
                   onClick={handleSubmitQuiz}
-                  disabled={answered !== dailyQuestions.length}
+                  disabled={isSubmittingQuiz}
                   className="bg-gradient-to-r from-primary to-chart-2 gap-2"
                 >
-                  Submit Quiz
-                  <ArrowRight className="h-4 w-4" />
+                  {isSubmittingQuiz ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      Submit Quiz
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               ) : (
                 <Button onClick={handleNextQuestion} className="gap-2">
@@ -2005,6 +2188,36 @@ export default function DailyQuizPage() {
 
   // Results screen
   if (showResults) {
+    if (dailyQuestions.length === 0) {
+      return (
+        <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-card">
+          <Navbar />
+          <main className="flex-1 py-12 md:py-20">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
+              <Card className="premium-card">
+                <CardHeader>
+                  <CardTitle>Quiz Results Unavailable</CardTitle>
+                  <CardDescription>We could not find your questions for this attempt.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    onClick={() => {
+                      initializeQuiz();
+                      setQuizState((prev) => ({ ...prev, quizStarted: false, showResults: false }));
+                    }}
+                    className="w-full"
+                  >
+                    Reload Daily Quiz
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      );
+    }
+
     const reviewItems = dailyQuestions.map((question, idx) => {
       const answer = selectedAnswers[idx];
       const isCorrect = isQuestionCorrect(question, answer);
@@ -2017,7 +2230,8 @@ export default function DailyQuizPage() {
     });
 
     const correctAnswers = reviewItems.filter((item) => item.isCorrect).length;
-    const scorePercentage = Math.round((correctAnswers / dailyQuestions.length) * 100);
+    const safeQuestionCount = Math.max(1, dailyQuestions.length);
+    const scorePercentage = Math.round((correctAnswers / safeQuestionCount) * 100);
 
     const categoryResults = {
       grammar: {
