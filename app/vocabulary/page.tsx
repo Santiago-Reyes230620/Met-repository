@@ -7,6 +7,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useDailyLimit } from "@/hooks/use-daily-limit";
 import { supabase, VocabularyExercise } from "@/lib/supabase/client";
 import { FALLBACK_VOCABULARY_EXERCISES } from "@/lib/fallback-content";
+import { dailyShuffle, uniqueBy } from "@/lib/daily-rotation";
 import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
@@ -27,6 +28,19 @@ import {
   ArrowRight,
   Loader2,
 } from "lucide-react";
+
+const mergeVocabularyExercises = (
+  fetched: VocabularyExercise[],
+  fallback: VocabularyExercise[],
+  maxItems: number
+): VocabularyExercise[] => {
+  const mergedUnique = uniqueBy(
+    [...fetched, ...fallback],
+    (exercise) => `${exercise.word}::${exercise.definition}`
+  );
+
+  return dailyShuffle(mergedUnique, "vocabulary-practice").slice(0, maxItems);
+};
 
 export default function VocabularyPage() {
   const { user, loading: authLoading } = useAuth();
@@ -69,8 +83,8 @@ export default function VocabularyPage() {
       const fetchedExercises = (data || []) as VocabularyExercise[];
       const fallbackExercises = getFallbackExercises();
 
-      const limitedFetched = isFree() ? fetchedExercises.slice(0, 30) : fetchedExercises;
-      setExercises(limitedFetched.length > 0 ? limitedFetched : fallbackExercises);
+      const merged = mergeVocabularyExercises(fetchedExercises, fallbackExercises, maxItems);
+      setExercises(merged);
       setCurrentIndex(0);
       setSelectedAnswer(null);
       setShowResult(false);

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
+import { dailyShuffle } from "@/lib/daily-rotation";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -627,7 +628,9 @@ export default function ListeningPage() {
     if (difficulty !== "all") {
       filtered = filtered.filter((e) => e.difficulty === difficulty);
     }
-    setFilteredExercises(filtered);
+
+    const scope = `listening-practice-${selectedCategory || "all"}-${difficulty}`;
+    setFilteredExercises(dailyShuffle(filtered, scope));
     setCurrentIndex(0);
     setSelectedAnswer(null);
     setShowResult(false);

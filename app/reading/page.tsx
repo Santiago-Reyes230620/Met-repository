@@ -7,6 +7,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useDailyLimit } from "@/hooks/use-daily-limit";
 import { supabase, ReadingPassage, ReadingQuestion } from "@/lib/supabase/client";
 import { FALLBACK_READING_CONTENT } from "@/lib/fallback-content";
+import { dailyShuffle, uniqueBy } from "@/lib/daily-rotation";
 import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
@@ -30,6 +31,30 @@ import {
   Loader2,
   BookMarked,
 } from "lucide-react";
+
+const mergeReadingPassages = (
+  fetched: Array<ReadingPassage & { questions: ReadingQuestion[] }>,
+  fallback: Array<ReadingPassage & { questions: ReadingQuestion[] }>,
+  maxPassages: number,
+  difficulty: string
+) => {
+  const fetchedWithShuffledQuestions = fetched.map((passage) => ({
+    ...passage,
+    questions: dailyShuffle(passage.questions, `reading-questions-${passage.id}`),
+  }));
+
+  const fallbackWithShuffledQuestions = fallback.map((passage) => ({
+    ...passage,
+    questions: dailyShuffle(passage.questions, `reading-questions-${passage.id}`),
+  }));
+
+  const uniquePassages = uniqueBy(
+    [...fetchedWithShuffledQuestions, ...fallbackWithShuffledQuestions],
+    (passage) => `${passage.title}::${passage.content.slice(0, 100)}`
+  );
+
+  return dailyShuffle(uniquePassages, `reading-practice-${difficulty}`).slice(0, maxPassages);
+};
 
 export default function ReadingPage() {
   const { user, loading: authLoading } = useAuth();
@@ -85,8 +110,9 @@ export default function ReadingPage() {
 
       const nonEmptyPassages = passagesWithQuestions.filter((passage) => passage.questions.length > 0);
       const fallbackPassages = getFallbackPassages();
-      const limitedPassages = isFree() ? nonEmptyPassages.slice(0, 10) : nonEmptyPassages;
-      setPassages(limitedPassages.length > 0 ? limitedPassages : fallbackPassages);
+
+      const merged = mergeReadingPassages(nonEmptyPassages, fallbackPassages, maxPassages, difficulty);
+      setPassages(merged);
       setCurrentPassageIndex(0);
       setCurrentQuestionIndex(0);
       setSelectedAnswer(null);

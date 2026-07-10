@@ -102,7 +102,7 @@ export const FALLBACK_GRAMMAR_EXERCISES: GrammarExercise[] = Array.from(
 
     return {
       id: `fallback-grammar-${i + 1}`,
-      question: `${question} (Set ${Math.floor(i / grammarTemplates.length) + 1})`,
+      question,
       options,
       correct_answer: template.correct,
       explanation: template.explanation,
@@ -197,11 +197,11 @@ export const FALLBACK_VOCABULARY_EXERCISES: VocabularyExercise[] = Array.from(
 
     return {
       id: `fallback-vocab-${i + 1}`,
-      word: `${base.word}-${Math.floor(i / vocabBase.length) + 1}`,
+      word: base.word,
       definition: base.definition,
       options,
       correct_answer: base.word,
-      example_sentence: `${base.sentence} (Example ${Math.floor(i / vocabBase.length) + 1})`,
+      example_sentence: base.sentence,
       part_of_speech: base.partOfSpeech,
       difficulty,
       category: base.category,

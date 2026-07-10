@@ -1302,6 +1302,7 @@ export default function DailyQuizPage() {
   const [speechSupported, setSpeechSupported] = useState(true);
   const [isRecordingSpeech, setIsRecordingSpeech] = useState(false);
   const [speechError, setSpeechError] = useState("");
+  const [interimSpeechText, setInterimSpeechText] = useState("");
   const listeningUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speechRecognitionRef = useRef<any>(null);
 
@@ -1552,6 +1553,7 @@ export default function DailyQuizPage() {
     recognition.onstart = () => {
       setIsRecordingSpeech(true);
       setSpeechError("");
+      setInterimSpeechText("");
     };
 
     recognition.onerror = (event: any) => {
@@ -1561,6 +1563,40 @@ export default function DailyQuizPage() {
 
     recognition.onend = () => {
       setIsRecordingSpeech(false);
+      setInterimSpeechText("");
+    };
+
+    recognition.onresult = (event: any) => {
+      setQuizState((prevState) => {
+        const nextAnswers = [...prevState.selectedAnswers];
+        const currentValue = typeof nextAnswers[prevState.currentQuestionIndex] === "string"
+          ? String(nextAnswers[prevState.currentQuestionIndex])
+          : "";
+
+        let finalChunk = "";
+        let interimChunk = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const chunk = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalChunk += `${chunk} `;
+          } else {
+            interimChunk += chunk;
+          }
+        }
+
+        setInterimSpeechText(interimChunk);
+
+        if (finalChunk.trim()) {
+          nextAnswers[prevState.currentQuestionIndex] = `${currentValue}${finalChunk}`;
+          return {
+            ...prevState,
+            selectedAnswers: nextAnswers,
+          };
+        }
+
+        return prevState;
+      });
     };
 
     speechRecognitionRef.current = recognition;
@@ -1576,6 +1612,7 @@ export default function DailyQuizPage() {
     setListeningNotice("");
     stopListeningAudio();
     setSpeechError("");
+    setInterimSpeechText("");
 
     if (speechRecognitionRef.current && isRecordingSpeech) {
       speechRecognitionRef.current.stop();
@@ -1628,39 +1665,6 @@ export default function DailyQuizPage() {
     }
     setIsRecordingSpeech(false);
   };
-
-  const handleSpeechTranscript = (text: string) => {
-    const newAnswers = [...quizState.selectedAnswers];
-    const prev = typeof newAnswers[quizState.currentQuestionIndex] === "string"
-      ? String(newAnswers[quizState.currentQuestionIndex])
-      : "";
-
-    newAnswers[quizState.currentQuestionIndex] = `${prev}${text}`;
-    setQuizState((prevState) => ({
-      ...prevState,
-      selectedAnswers: newAnswers,
-    }));
-  };
-
-  useEffect(() => {
-    const recognition = speechRecognitionRef.current;
-    if (!recognition) return;
-
-    recognition.onresult = (event: any) => {
-      let transcriptChunk = "";
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const chunk = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          transcriptChunk += `${chunk} `;
-        }
-      }
-
-      if (transcriptChunk.trim()) {
-        handleSpeechTranscript(transcriptChunk);
-      }
-    };
-  }, [quizState.currentQuestionIndex, quizState.selectedAnswers]);
 
   const handleStartQuiz = () => {
     if (quizState.completedAt && quizState.completedAt.startsWith(getToday())) {
@@ -1803,6 +1807,26 @@ export default function DailyQuizPage() {
 
   const { currentQuestionIndex, selectedAnswers, timeRemaining, quizStarted, showResults, dailyQuestions } = quizState;
   const completedToday = Boolean(quizState.completedAt && quizState.completedAt.startsWith(getToday()));
+  const currentQuestion = dailyQuestions[currentQuestionIndex];
+
+  const speakingFeedback =
+    currentQuestion?.responseMode === "speech"
+      ? (() => {
+          const answer = selectedAnswers[currentQuestionIndex];
+          const normalized = typeof answer === "string" ? answer.toLowerCase() : "";
+          const keywords = (currentQuestion.expectedKeywords || []).map((k) => k.toLowerCase());
+          const matched = keywords.filter((keyword) => normalized.includes(keyword));
+          const total = keywords.length;
+          const score = total > 0 ? Math.round((matched.length / total) * 100) : 0;
+
+          return {
+            matched,
+            total,
+            score,
+            isGood: score >= 60,
+          };
+        })()
+      : null;
 
   // Quiz start screen
   if (!quizStarted && !showResults) {
@@ -1939,7 +1963,6 @@ export default function DailyQuizPage() {
 
   // Quiz in progress
   if (quizStarted) {
-    const currentQuestion = dailyQuestions[currentQuestionIndex];
     if (!currentQuestion) {
       return (
         <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-card">
@@ -2097,6 +2120,9 @@ export default function DailyQuizPage() {
                         {speechError && (
                           <p className="text-xs text-destructive">{speechError}</p>
                         )}
+                        {isRecordingSpeech && interimSpeechText && (
+                          <p className="text-xs text-primary">Listening: {interimSpeechText}</p>
+                        )}
                       </div>
                     )}
                     {(() => {
@@ -2117,6 +2143,20 @@ export default function DailyQuizPage() {
                     <p className="text-xs text-muted-foreground">
                       Tip: Write at least 1-2 complete sentences.
                     </p>
+                    {currentQuestion.responseMode === "speech" && speakingFeedback && (
+                      <Alert className={speakingFeedback.isGood ? "border-green-500/40 bg-green-500/5" : "border-amber-500/40 bg-amber-500/5"}>
+                        <AlertDescription>
+                          <p className={speakingFeedback.isGood ? "text-green-700" : "text-amber-700"}>
+                            {speakingFeedback.isGood
+                              ? `Good speaking response (${speakingFeedback.score}%).`
+                              : `Needs more detail (${speakingFeedback.score}%).`}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Keywords detected: {speakingFeedback.matched.length}/{speakingFeedback.total}
+                          </p>
+                        </AlertDescription>
+                      </Alert>
+                    )}
                   </div>
                 ) : (
                   <RadioGroup

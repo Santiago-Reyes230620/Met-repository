@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
+import { dailyShuffle } from "@/lib/daily-rotation";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -384,9 +385,11 @@ export default function SpeakingPage() {
   const [answeredCount, setAnsweredCount] = useState(0);
   const [speechRecognitionAvailable, setSpeechRecognitionAvailable] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [interimTranscript, setInterimTranscript] = useState("");
 
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const finalTranscriptRef = useRef("");
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -406,22 +409,30 @@ export default function SpeakingPage() {
     recognition.onstart = () => {
       setIsRecording(true);
       setError(null);
+      setInterimTranscript("");
+      finalTranscriptRef.current = "";
+      setTranscript("");
     };
 
     recognition.onresult = (event: any) => {
-      let interimTranscript = "";
-      let finalTranscript = "";
+      let interimChunk = "";
+      let finalChunk = "";
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
+        const chunk = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
-          finalTranscript += transcript + " ";
+          finalChunk += `${chunk} `;
         } else {
-          interimTranscript += transcript;
+          interimChunk += chunk;
         }
       }
 
-      setTranscript((prev) => prev + finalTranscript + interimTranscript);
+      if (finalChunk.trim()) {
+        finalTranscriptRef.current += finalChunk;
+      }
+
+      setInterimTranscript(interimChunk);
+      setTranscript(`${finalTranscriptRef.current}${interimChunk}`.trim());
     };
 
     recognition.onerror = (event: any) => {
@@ -431,6 +442,7 @@ export default function SpeakingPage() {
 
     recognition.onend = () => {
       setIsRecording(false);
+      setInterimTranscript("");
     };
 
     recognitionRef.current = recognition;
@@ -444,6 +456,8 @@ export default function SpeakingPage() {
 
   const resetExerciseState = useCallback(() => {
     setTranscript("");
+    setInterimTranscript("");
+    finalTranscriptRef.current = "";
     setDetectedKeywords([]);
     setScore(null);
     setShowResult(false);
@@ -491,7 +505,9 @@ export default function SpeakingPage() {
     if (difficulty !== "all") {
       filtered = filtered.filter((e) => e.difficulty === difficulty);
     }
-    setFilteredExercises(filtered);
+
+    const scope = `speaking-practice-${selectedCategory || "all"}-${difficulty}`;
+    setFilteredExercises(dailyShuffle(filtered, scope));
     setCurrentIndex(0);
     resetExerciseState();
   }, [selectedCategory, difficulty, resetExerciseState]);
@@ -827,6 +843,10 @@ export default function SpeakingPage() {
                           "Click the microphone to start speaking"
                         )}
                       </p>
+
+                      {isRecording && interimTranscript && (
+                        <p className="text-xs text-primary text-center">Listening: {interimTranscript}</p>
+                      )}
                     </div>
                   </div>
 

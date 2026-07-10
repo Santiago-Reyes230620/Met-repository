@@ -7,6 +7,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useDailyLimit } from "@/hooks/use-daily-limit";
 import { supabase, GrammarExercise } from "@/lib/supabase/client";
 import { FALLBACK_GRAMMAR_EXERCISES } from "@/lib/fallback-content";
+import { dailyShuffle, uniqueBy } from "@/lib/daily-rotation";
 import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
@@ -28,6 +29,19 @@ import {
   Loader2,
   Lock,
 } from "lucide-react";
+
+const mergeGrammarExercises = (
+  fetched: GrammarExercise[],
+  fallback: GrammarExercise[],
+  maxItems: number
+): GrammarExercise[] => {
+  const mergedUnique = uniqueBy(
+    [...fetched, ...fallback],
+    (exercise) => `${exercise.question}::${exercise.correct_answer}`
+  );
+
+  return dailyShuffle(mergedUnique, "grammar-practice").slice(0, maxItems);
+};
 
 const categories = [
   { id: "verb-tenses", name: "Verb Tenses", color: "default" as const },
@@ -85,8 +99,8 @@ export default function GrammarPage() {
       const fetchedExercises = (data || []) as GrammarExercise[];
       const fallbackExercises = getFallbackExercises();
 
-      const limitedFetched = isFree() ? fetchedExercises.slice(0, 30) : fetchedExercises;
-      setExercises(limitedFetched.length > 0 ? limitedFetched : fallbackExercises);
+      const merged = mergeGrammarExercises(fetchedExercises, fallbackExercises, maxItems);
+      setExercises(merged);
       setCurrentIndex(0);
       setSelectedAnswer(null);
       setShowResult(false);

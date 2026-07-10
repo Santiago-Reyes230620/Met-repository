@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/use-subscription';
+import { dailyShuffle } from '@/lib/daily-rotation';
 import { Navbar } from '@/components/shared/Navbar';
 import { Footer } from '@/components/shared/Footer';
 import { PaywallAlert } from '@/components/shared/PaywallAlert';
@@ -599,7 +600,7 @@ export default function WritingPage() {
 
   // Separate effect for data filtering (no hasAccess or isFree in dependencies)
   useEffect(() => {
-    setExercises(WRITING_EXERCISES);
+    setExercises(dailyShuffle(WRITING_EXERCISES, 'writing-practice'));
   }, []);
 
   // Separate effect for filtering exercises (no hasAccess or isFree in dependencies)
@@ -614,7 +615,7 @@ export default function WritingPage() {
       filtered = filtered.filter((e) => e.difficulty === difficultyFilter);
     }
 
-    setFilteredExercises(filtered);
+    setFilteredExercises(dailyShuffle(filtered, `writing-practice-${categoryFilter}-${difficultyFilter}`));
   }, [exercises, categoryFilter, difficultyFilter]);
 
   // If filters leave the list empty, automatically reset to show all exercises.
