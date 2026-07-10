@@ -462,10 +462,14 @@ export default function SpeakingPage() {
     setScore(null);
     setShowResult(false);
     setError(null);
-    if (recognitionRef.current && isRecording) {
-      recognitionRef.current.abort();
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {
+        // Ignore abort errors when recognition is not active.
+      }
     }
-  }, [isRecording]);
+  }, []);
 
   const requestMicrophoneAccess = useCallback(async () => {
     if (typeof window === "undefined") return false;
