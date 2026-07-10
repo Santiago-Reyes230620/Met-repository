@@ -1194,60 +1194,32 @@ const questionPool: QuizQuestion[] = [
     id: 105,
     category: "writing",
     responseMode: "writing",
-    expectedKeywords: ["flexibility", "discipline", "online learning"],
-    question: "Which sentence is the best topic sentence for a paragraph about online learning?",
-    options: [
-      "Online learning exists.",
-      "Online learning offers flexibility, but students need discipline to succeed.",
-      "Many people use computers.",
-      "Education is important."
-    ],
-    correctAnswer: 1,
-    explanation: "A good topic sentence is specific and previews the main idea."
+    expectedKeywords: ["online learning", "flexibility", "discipline", "students"],
+    question: "Write a strong topic sentence and one supporting sentence about online learning.",
+    explanation: "A strong response states a clear idea and supports it with a concrete detail."
   },
   {
     id: 106,
     category: "writing",
     responseMode: "writing",
-    expectedKeywords: ["evidence", "examples", "support"],
-    question: "What is the best way to support a claim in academic writing?",
-    options: [
-      "Use only opinions",
-      "Provide examples or evidence",
-      "Repeat the same sentence",
-      "Use very long words"
-    ],
-    correctAnswer: 1,
+    expectedKeywords: ["claim", "evidence", "example", "support"],
+    question: "Write 2-3 sentences supporting a claim with one clear example.",
     explanation: "Strong writing supports claims with examples, facts, or clear reasoning."
   },
   {
     id: 107,
     category: "writing",
     responseMode: "writing",
-    expectedKeywords: ["topic sentence", "supporting details", "conclusion"],
-    question: "Choose the most coherent paragraph order.",
-    options: [
-      "Conclusion -> Example -> Topic sentence",
-      "Topic sentence -> Supporting details -> Conclusion",
-      "Supporting details -> New topic -> Unrelated detail",
-      "Question -> Question -> Question"
-    ],
-    correctAnswer: 1,
+    expectedKeywords: ["topic", "detail", "conclusion", "paragraph"],
+    question: "Write a short paragraph with clear structure: topic idea, supporting detail, and conclusion.",
     explanation: "Clear paragraph organization improves coherence and readability."
   },
   {
     id: 108,
     category: "writing",
     responseMode: "writing",
-    expectedKeywords: ["clear", "specific", "details"],
-    question: "Which revision improves clarity?",
-    options: [
-      "The thing was good in many ways and stuff.",
-      "The program improved test scores by 12% in six months.",
-      "It was kind of nice and maybe effective.",
-      "There were things that happened."
-    ],
-    correctAnswer: 1,
+    expectedKeywords: ["clear", "specific", "detail", "improved"],
+    question: "Rewrite this vague idea clearly using specific details: 'The program was good.'",
     explanation: "Precise language and specific details make writing clearer."
   },
 ];

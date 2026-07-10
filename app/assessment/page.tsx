@@ -215,6 +215,10 @@ export default function AssessmentPage() {
       return value.split(/\s+/).length >= 4;
     }
 
+    if (currentQuestion.response_mode === "writing") {
+      return value.split(/\s+/).length >= 18;
+    }
+
     return true;
   };
 
@@ -312,6 +316,8 @@ export default function AssessmentPage() {
       setError(
         currentQuestion.response_mode === "speech"
           ? "Please provide a fuller speaking response before continuing"
+          : currentQuestion.response_mode === "writing"
+          ? "Please write a fuller response before continuing"
           : "Please answer the question before continuing"
       );
       return;
@@ -335,6 +341,8 @@ export default function AssessmentPage() {
       setError(
         currentQuestion.response_mode === "speech"
           ? "Please provide a fuller speaking response before submitting"
+          : currentQuestion.response_mode === "writing"
+          ? "Please write a fuller response before submitting"
           : "Please answer the question before submitting"
       );
       return;
@@ -432,11 +440,19 @@ export default function AssessmentPage() {
       let isCorrect = false;
 
       if (!isSkipped && hasAnswer) {
-        if (question.response_mode === "speech") {
+        if (question.response_mode === "speech" || question.response_mode === "writing") {
           const keywords = (question.expected_keywords || []).map((k) => k.toLowerCase());
           const matched = keywords.filter((keyword) => normalizedAnswer.includes(keyword)).length;
           const minMatches = Math.max(2, Math.ceil(keywords.length * 0.4));
-          isCorrect = keywords.length > 0 && matched >= minMatches;
+          const wordCount = normalizedAnswer.split(/\s+/).filter(Boolean).length;
+          const minimumWords = question.response_mode === "writing" ? 18 : 4;
+          const meetsLength = wordCount >= minimumWords;
+
+          if (keywords.length === 0) {
+            isCorrect = meetsLength;
+          } else {
+            isCorrect = matched >= minMatches && meetsLength;
+          }
         } else if (question.correct_answer) {
           isCorrect = normalizedAnswer === question.correct_answer.toLowerCase();
         }
@@ -697,38 +713,46 @@ export default function AssessmentPage() {
                   </div>
                 )}
 
-                {currentQuestion.response_mode === "speech" ? (
+                {currentQuestion.response_mode === "speech" || currentQuestion.response_mode === "writing" ? (
                   <div className="space-y-3">
-                    <div className="rounded-lg border border-slate-600 bg-slate-900/40 p-4">
-                      <p className="text-sm text-slate-300 mb-3">
-                        Speak your answer in English. We will capture your response automatically.
-                      </p>
-                      <div className="flex gap-2 flex-wrap">
-                        <Button
-                          type="button"
-                          onClick={isRecording ? stopRecording : () => void startRecording()}
-                          disabled={!speechSupported}
-                          className={isRecording ? "bg-red-500 hover:bg-red-600 text-white" : "bg-teal-500 hover:bg-teal-600 text-white"}
-                        >
-                          {isRecording ? "Stop Recording" : "Start Recording"}
-                        </Button>
-                        {!speechSupported && (
-                          <span className="text-xs text-amber-300 self-center">
-                            Voice capture unavailable in this browser.
-                          </span>
-                        )}
-                        {hasSpeechPermission === false && (
-                          <span className="text-xs text-amber-300 self-center">
-                            Microphone permission denied. Continue by typing your response.
-                          </span>
-                        )}
-                        {voiceNotice && (
-                          <span className="text-xs text-amber-300 self-center">
-                            {voiceNotice}
-                          </span>
-                        )}
+                    {currentQuestion.response_mode === "speech" ? (
+                      <div className="rounded-lg border border-slate-600 bg-slate-900/40 p-4">
+                        <p className="text-sm text-slate-300 mb-3">
+                          Speak your answer in English. We will capture your response automatically.
+                        </p>
+                        <div className="flex gap-2 flex-wrap">
+                          <Button
+                            type="button"
+                            onClick={isRecording ? stopRecording : () => void startRecording()}
+                            disabled={!speechSupported}
+                            className={isRecording ? "bg-red-500 hover:bg-red-600 text-white" : "bg-teal-500 hover:bg-teal-600 text-white"}
+                          >
+                            {isRecording ? "Stop Recording" : "Start Recording"}
+                          </Button>
+                          {!speechSupported && (
+                            <span className="text-xs text-amber-300 self-center">
+                              Voice capture unavailable in this browser.
+                            </span>
+                          )}
+                          {hasSpeechPermission === false && (
+                            <span className="text-xs text-amber-300 self-center">
+                              Microphone permission denied. Continue by typing your response.
+                            </span>
+                          )}
+                          {voiceNotice && (
+                            <span className="text-xs text-amber-300 self-center">
+                              {voiceNotice}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="rounded-lg border border-slate-600 bg-slate-900/40 p-4">
+                        <p className="text-sm text-slate-300">
+                          Write your answer in English. We will evaluate idea coverage and clarity.
+                        </p>
+                      </div>
+                    )}
 
                     <Textarea
                       value={answers[currentQuestion.id] || ""}
@@ -736,7 +760,11 @@ export default function AssessmentPage() {
                         setCurrentAnswer(e.target.value);
                         setError("");
                       }}
-                      placeholder="Your spoken response will appear here. You can also type it manually."
+                      placeholder={
+                        currentQuestion.response_mode === "speech"
+                          ? "Your spoken response will appear here. You can also type it manually."
+                          : "Write your response here..."
+                      }
                       className="min-h-[130px] bg-slate-700 border-slate-600 text-slate-100"
                     />
                   </div>

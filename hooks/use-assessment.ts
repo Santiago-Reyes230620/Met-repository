@@ -9,8 +9,9 @@ export type AssessmentQuestion = {
   question: string;
   passage?: string;
   audio_text?: string;
-  response_mode?: 'choice' | 'speech';
+  response_mode?: 'choice' | 'speech' | 'writing';
   expected_keywords?: string[];
+  min_words?: number;
   options?: string[];
   correct_answer?: string;
   difficulty: 'easy' | 'medium' | 'hard';
@@ -52,14 +53,23 @@ export const useAssessment = () => {
         const normalizedAnswer = (userAnswers[q.id] || '').trim().toLowerCase();
         if (!normalizedAnswer) return;
 
-        if (q.response_mode === 'speech') {
+        if (q.response_mode === 'speech' || q.response_mode === 'writing') {
           const keywords = (q.expected_keywords || []).map((k) => k.toLowerCase());
-          if (keywords.length === 0) return;
+          const wordCount = normalizedAnswer.split(/\s+/).filter(Boolean).length;
+          const minimumWords = q.min_words ?? (q.response_mode === 'writing' ? 18 : 4);
+          const meetsLength = wordCount >= minimumWords;
+
+          if (keywords.length === 0) {
+            if (meetsLength) {
+              scoreByType[q.type].correct++;
+            }
+            return;
+          }
 
           const matched = keywords.filter((keyword) => normalizedAnswer.includes(keyword)).length;
           const minMatches = Math.max(2, Math.ceil(keywords.length * 0.4));
 
-          if (matched >= minMatches) {
+          if (matched >= minMatches && meetsLength) {
             scoreByType[q.type].correct++;
           }
           return;
@@ -453,41 +463,46 @@ export const getAssessmentQuestions = (): AssessmentQuestion[] => [
   {
     id: 'write_1',
     type: 'writing',
-    question: 'Can you write simple, grammatically correct sentences?',
-    options: ['Not well', 'Somewhat', 'Yes, usually', 'Consistently'],
-    correct_answer: 'Yes, usually',
+    question: 'Write 2-3 sentences introducing yourself and your English goals.',
+    response_mode: 'writing',
+    expected_keywords: ['i', 'english', 'goal', 'improve'],
+    min_words: 18,
     difficulty: 'easy',
   },
   {
     id: 'write_2',
     type: 'writing',
-    question: 'Can you organize your ideas clearly in a paragraph?',
-    options: ['Struggle', 'With some effort', 'Reasonably well', 'Excellently'],
-    correct_answer: 'Reasonably well',
+    question: 'Write a short paragraph (4-5 lines) about your daily routine using sequence words (first, then, finally).',
+    response_mode: 'writing',
+    expected_keywords: ['first', 'then', 'finally', 'daily'],
+    min_words: 26,
     difficulty: 'medium',
   },
   {
     id: 'write_3',
     type: 'writing',
-    question: 'How is your vocabulary range in writing?',
-    options: ['Limited', 'Basic', 'Good variety', 'Sophisticated'],
-    correct_answer: 'Good variety',
+    question: 'Explain one benefit and one challenge of online learning in your own words.',
+    response_mode: 'writing',
+    expected_keywords: ['benefit', 'challenge', 'online', 'learning', 'because'],
+    min_words: 28,
     difficulty: 'medium',
   },
   {
     id: 'write_4',
     type: 'writing',
-    question: 'Can you write an essay with clear structure and argumentation?',
-    options: ['No', 'Basic structure', 'Good structure', 'Excellent structure'],
-    correct_answer: 'Good structure',
+    question: 'Write a brief opinion paragraph on whether technology helps education. Give at least one clear reason.',
+    response_mode: 'writing',
+    expected_keywords: ['technology', 'education', 'reason', 'because'],
+    min_words: 32,
     difficulty: 'hard',
   },
   {
     id: 'write_5',
     type: 'writing',
-    question: 'How often do you need to revise your writing for errors?',
-    options: ['Very often', 'Often', 'Occasionally', 'Rarely'],
-    correct_answer: 'Occasionally',
+    question: 'Write a short conclusion paragraph summarizing a topic you know well and include a recommendation.',
+    response_mode: 'writing',
+    expected_keywords: ['in conclusion', 'recommend', 'should'],
+    min_words: 34,
     difficulty: 'hard',
   },
 ];
