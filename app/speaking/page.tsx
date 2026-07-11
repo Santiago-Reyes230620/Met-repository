@@ -26,6 +26,7 @@ import {
   Copy,
   AlertTriangle,
 } from "lucide-react";
+import { expandExercisePool } from "@/lib/exercise-pool";
 
 interface SpeakingExercise {
   id: number;
@@ -48,7 +49,14 @@ const categories = [
   { id: "debates", name: "Debates" },
 ];
 
-const speakingExercises: SpeakingExercise[] = [
+const speakingVariantNotes = [
+  "Keep your answer clear and natural.",
+  "Include one specific example in your response.",
+  "Imagine you are speaking in a real exam setting.",
+  "Add a brief follow-up idea at the end.",
+];
+
+const baseSpeakingExercises: SpeakingExercise[] = [
   // === GREETINGS - Beginner ===
   {
     id: 1,
@@ -366,9 +374,24 @@ const speakingExercises: SpeakingExercise[] = [
   },
 ];
 
+const speakingExercises = expandExercisePool(baseSpeakingExercises, 4, (exercise, variantIndex) => {
+  if (variantIndex === 0) {
+    return exercise;
+  }
+
+  const note = speakingVariantNotes[variantIndex % speakingVariantNotes.length];
+
+  return {
+    ...exercise,
+    id: exercise.id + variantIndex * 1000,
+    title: `${exercise.title} (${variantIndex + 1})`,
+    prompt: `${exercise.prompt} ${note}`,
+  };
+});
+
 export default function SpeakingPage() {
   const { user, loading: authLoading } = useAuth();
-  const { subscription, loading: subLoading, hasAccess } = useSubscription();
+  const { subscription, loading: subLoading, hasAccess, isFree } = useSubscription();
   const router = useRouter();
 
   const [filteredExercises, setFilteredExercises] = useState<SpeakingExercise[]>(speakingExercises);
@@ -390,6 +413,20 @@ export default function SpeakingPage() {
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const finalTranscriptRef = useRef("");
+  const isRecordingRef = useRef(false);
+  const lastSpeechErrorRef = useRef<string | null>(null);
+
+  const isIgnoredSpeechError = (value: unknown) => {
+    return typeof value === "string" && ["aborted", "canceled", "cancelled"].includes(value.toLowerCase());
+  };
+
+  const getSpeechErrorMessage = (value: unknown) => {
+    if (value === "no-speech") {
+      return "No speech detected. Speak a little louder or try again closer to the microphone.";
+    }
+
+    return `Microphone error: ${value}`;
+  };
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -407,6 +444,7 @@ export default function SpeakingPage() {
     recognition.lang = "en-US";
 
     recognition.onstart = () => {
+      isRecordingRef.current = true;
       setIsRecording(true);
       setError(null);
       setInterimTranscript("");
@@ -436,19 +474,30 @@ export default function SpeakingPage() {
     };
 
     recognition.onerror = (event: any) => {
-      setError(`Microphone error: ${event.error}`);
+      isRecordingRef.current = false;
+      lastSpeechErrorRef.current = typeof event?.error === "string" ? event.error : null;
+      if (!isIgnoredSpeechError(event?.error)) {
+        setError(getSpeechErrorMessage(event?.error));
+      } else {
+        setError(null);
+      }
       setIsRecording(false);
     };
 
     recognition.onend = () => {
+      isRecordingRef.current = false;
       setIsRecording(false);
       setInterimTranscript("");
+      if (isIgnoredSpeechError(lastSpeechErrorRef.current)) {
+        setError(null);
+      }
+      lastSpeechErrorRef.current = null;
     };
 
     recognitionRef.current = recognition;
 
     return () => {
-      if (recognitionRef.current) {
+      if (recognitionRef.current && isRecordingRef.current) {
         recognitionRef.current.abort();
       }
     };
@@ -462,8 +511,10 @@ export default function SpeakingPage() {
     setScore(null);
     setShowResult(false);
     setError(null);
-    if (recognitionRef.current) {
+    lastSpeechErrorRef.current = null;
+    if (recognitionRef.current && isRecordingRef.current) {
       try {
+        isRecordingRef.current = false;
         recognitionRef.current.abort();
       } catch {
         // Ignore abort errors when recognition is not active.
@@ -511,7 +562,8 @@ export default function SpeakingPage() {
     }
 
     const scope = `speaking-practice-${selectedCategory || "all"}-${difficulty}`;
-    setFilteredExercises(dailyShuffle(filtered, scope));
+  const shuffled = dailyShuffle(filtered, scope);
+  setFilteredExercises(isFree() ? shuffled.slice(0, 8) : shuffled);
     setCurrentIndex(0);
     resetExerciseState();
   }, [selectedCategory, difficulty, resetExerciseState]);
@@ -521,11 +573,11 @@ export default function SpeakingPage() {
     if (!authLoading && !user) {
       router.push("/login");
     } else if (!authLoading && user && !subLoading) {
-      if (!hasAccess("speaking")) {
+      if (!isFree() && !hasAccess("speaking")) {
         setShowPaywall(true);
       }
     }
-  }, [authLoading, user, subLoading, router, hasAccess]);
+  }, [authLoading, user, subLoading, router, hasAccess, isFree]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -555,6 +607,7 @@ export default function SpeakingPage() {
     setTranscript("");
     setDetectedKeywords([]);
     setError(null);
+    lastSpeechErrorRef.current = null;
 
     try {
       recognitionRef.current.start();
@@ -568,9 +621,11 @@ export default function SpeakingPage() {
 
   const stopRecording = () => {
     if (recognitionRef.current) {
+      isRecordingRef.current = false;
       recognitionRef.current.stop();
     }
     setIsRecording(false);
+    lastSpeechErrorRef.current = null;
   };
 
   const checkAnswer = () => {

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useLocalDateKey } from "@/hooks/use-local-date-key";
+import { getLocalDateKey } from "@/lib/date-utils";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { PaywallAlert } from "@/components/shared/PaywallAlert";
@@ -1247,6 +1249,7 @@ export default function DailyQuizPage() {
   const { user, loading: authLoading } = useAuth();
   const { subscription, loading: subLoading } = useSubscription();
   const router = useRouter();
+  const rotationDay = useLocalDateKey();
 
   const planId = subscription?.plan_id || "free";
   const isFreePlan = planId === "free";
@@ -1277,8 +1280,6 @@ export default function DailyQuizPage() {
   const [interimSpeechText, setInterimSpeechText] = useState("");
   const listeningUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speechRecognitionRef = useRef<any>(null);
-
-  const getToday = () => new Date().toISOString().split("T")[0];
 
   const stopListeningAudio = useCallback(() => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
@@ -1321,15 +1322,14 @@ export default function DailyQuizPage() {
   const getStorageKey = useCallback(
     (targetPlanId: string) => {
       if (!user?.id) return "";
-      return `daily-quiz:${user.id}:${targetPlanId}:${getToday()}`;
+      return `daily-quiz:${user.id}:${targetPlanId}:${rotationDay}`;
     },
-    [user?.id]
+    [user?.id, rotationDay]
   );
 
   const getDailyQuestions = useCallback(
     (count: number) => {
-      const today = getToday();
-      const shuffled = shuffleWithSeed(questionPool, today);
+      const shuffled = shuffleWithSeed(questionPool, rotationDay);
       const byCategory = QUIZ_CATEGORIES.reduce<Record<QuizQuestion["category"], QuizQuestion[]>>(
         (acc, category) => {
           acc[category] = shuffled.filter((q) => q.category === category);
@@ -1345,7 +1345,7 @@ export default function DailyQuizPage() {
         }
       );
 
-      const daySeed = Number(today.replaceAll("-", ""));
+      const daySeed = Number(rotationDay.replaceAll("-", ""));
       const rotationOffset = Number.isFinite(daySeed) ? daySeed % QUIZ_CATEGORIES.length : 0;
       const rotatedCategories = [
         ...QUIZ_CATEGORIES.slice(rotationOffset),
@@ -1375,9 +1375,9 @@ export default function DailyQuizPage() {
         }
       }
 
-      return shuffleWithSeed(selected, `${today}-final`);
+      return shuffleWithSeed(selected, `${rotationDay}-final`);
     },
-    []
+    [rotationDay]
   );
 
   // Separate auth effect
@@ -1418,7 +1418,7 @@ export default function DailyQuizPage() {
         const raw = window.localStorage.getItem(storageKey);
         if (raw) {
           const parsed = JSON.parse(raw) as PersistedQuizPayload;
-          const sameDate = parsed.date === getToday();
+          const sameDate = parsed.date === rotationDay;
           const samePlan = parsed.planId === planId;
           const hasValidQuestions =
             Array.isArray(parsed.quizState.dailyQuestions) &&
@@ -1459,6 +1459,7 @@ export default function DailyQuizPage() {
     initializeQuiz,
     getDailyQuestions,
     getStorageKey,
+    rotationDay,
   ]);
 
   useEffect(() => {
@@ -1467,14 +1468,14 @@ export default function DailyQuizPage() {
     if (!storageKey || typeof window === "undefined") return;
 
     const payload: PersistedQuizPayload = {
-      date: getToday(),
+      date: rotationDay,
       planId,
       dailyStreak,
       quizState,
     };
 
     window.localStorage.setItem(storageKey, JSON.stringify(payload));
-  }, [user, authLoading, subLoading, accessResolved, getStorageKey, planId, dailyStreak, quizState]);
+  }, [user, authLoading, subLoading, accessResolved, getStorageKey, planId, dailyStreak, quizState, rotationDay]);
 
   // Timer effect - only runs during active quiz
   useEffect(() => {
@@ -1639,7 +1640,7 @@ export default function DailyQuizPage() {
   };
 
   const handleStartQuiz = () => {
-    if (quizState.completedAt && quizState.completedAt.startsWith(getToday())) {
+    if (quizState.completedAt && getLocalDateKey(new Date(quizState.completedAt)) === rotationDay) {
       return;
     }
 
@@ -1778,7 +1779,7 @@ export default function DailyQuizPage() {
   if (!user) return null;
 
   const { currentQuestionIndex, selectedAnswers, timeRemaining, quizStarted, showResults, dailyQuestions } = quizState;
-  const completedToday = Boolean(quizState.completedAt && quizState.completedAt.startsWith(getToday()));
+  const completedToday = Boolean(quizState.completedAt && getLocalDateKey(new Date(quizState.completedAt)) === rotationDay);
   const currentQuestion = dailyQuestions[currentQuestionIndex];
 
   const speakingFeedback =

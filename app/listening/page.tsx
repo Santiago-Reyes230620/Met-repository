@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useLocalDateKey } from "@/hooks/use-local-date-key";
 import { dailyShuffle } from "@/lib/daily-rotation";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
@@ -27,6 +28,7 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
+import { expandExercisePool } from "@/lib/exercise-pool";
 
 const categories = [
   { id: "conversations", name: "Conversations" },
@@ -52,7 +54,14 @@ interface ListeningExercise {
   speed: 0.7 | 0.85 | 1;
 }
 
-const listeningExercises: ListeningExercise[] = [
+const listeningVariantNotes = [
+  "The speaker adds one extra scheduling detail.",
+  "The speaker mentions a second supporting fact.",
+  "The speaker clarifies the location and timing.",
+  "The speaker closes with a short follow-up detail.",
+];
+
+const baseListeningExercises: ListeningExercise[] = [
   // === CONVERSATIONS - Beginner ===
   {
     id: 1,
@@ -599,9 +608,25 @@ const listeningExercises: ListeningExercise[] = [
   },
 ];
 
+const listeningExercises = expandExercisePool(baseListeningExercises, 4, (exercise, variantIndex) => {
+  if (variantIndex === 0) {
+    return exercise;
+  }
+
+  const note = listeningVariantNotes[variantIndex % listeningVariantNotes.length];
+
+  return {
+    ...exercise,
+    id: exercise.id + variantIndex * 1000,
+    title: `${exercise.title} (${variantIndex + 1})`,
+    transcript: `${exercise.transcript} ${note}`,
+  };
+});
+
 export default function ListeningPage() {
   const { user, loading: authLoading } = useAuth();
-  const { subscription, loading: subLoading, hasAccess } = useSubscription();
+  const { subscription, loading: subLoading, hasAccess, isFree } = useSubscription();
+  const rotationDay = useLocalDateKey();
   const router = useRouter();
 
   const [filteredExercises, setFilteredExercises] = useState<ListeningExercise[]>(listeningExercises);
@@ -630,7 +655,8 @@ export default function ListeningPage() {
     }
 
     const scope = `listening-practice-${selectedCategory || "all"}-${difficulty}`;
-    setFilteredExercises(dailyShuffle(filtered, scope));
+    const shuffled = dailyShuffle(filtered, scope);
+    setFilteredExercises(isFree() ? shuffled.slice(0, 10) : shuffled);
     setCurrentIndex(0);
     setSelectedAnswer(null);
     setShowResult(false);
@@ -638,18 +664,18 @@ export default function ListeningPage() {
     setAnsweredCount(0);
     setPlayCount(0);
     setShowTranscript(false);
-  }, [selectedCategory, difficulty]);
+  }, [selectedCategory, difficulty, rotationDay]);
 
   // Auth & access check - separate from filtering
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login");
     } else if (!authLoading && user && !subLoading) {
-      if (!hasAccess("listening")) {
+      if (!isFree() && !hasAccess("listening")) {
         setShowPaywall(true);
       }
     }
-  }, [authLoading, user, subLoading, router, hasAccess]);
+  }, [authLoading, user, subLoading, router, hasAccess, isFree]);
 
   // Cleanup speech on unmount
   useEffect(() => {

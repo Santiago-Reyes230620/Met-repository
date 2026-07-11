@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAssessment, getAssessmentQuestions } from "@/hooks/use-assessment";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useLocalDateKey } from "@/hooks/use-local-date-key";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,6 +76,7 @@ export default function AssessmentPage() {
   const { isFree } = useSubscription();
   const { loading, answers, setAnswers, submitAssessment, results } = useAssessment();
   const router = useRouter();
+  const rotationDay = useLocalDateKey();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [error, setError] = useState("");
@@ -90,7 +92,7 @@ export default function AssessmentPage() {
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const recognitionRef = useRef<SpeechRecognitionType | null>(null);
 
-  const questions = getAssessmentQuestions();
+  const questions = useMemo(() => getAssessmentQuestions(), [rotationDay]);
   const currentQuestion = questions[currentIndex];
   const progress = ((currentIndex + 1) / questions.length) * 100;
 
@@ -350,7 +352,7 @@ export default function AssessmentPage() {
 
     try {
       setSubmitting(true);
-      await submitAssessment(answers);
+      await submitAssessment(answers, questions);
     } catch (err: any) {
       setError(err.message || "Failed to submit assessment");
     } finally {
@@ -368,7 +370,7 @@ export default function AssessmentPage() {
         await submitAssessment({
           ...answers,
           [currentQuestion.id]: SKIPPED_ANSWER,
-        });
+        }, questions);
       } catch (err: any) {
         setError(err.message || "Failed to submit assessment");
       } finally {
@@ -652,6 +654,13 @@ export default function AssessmentPage() {
               </div>
 
               <Progress value={progress} className="h-2" />
+
+              <div className="flex items-center justify-between rounded-md border border-slate-600/70 bg-slate-900/40 px-3 py-2">
+                <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-200 border-cyan-500/40">
+                  Daily Assessment Set
+                </Badge>
+                <span className="text-xs text-slate-300">Questions refresh every day (local time)</span>
+              </div>
             </CardHeader>
 
             {/* Question */}

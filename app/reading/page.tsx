@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useDailyLimit } from "@/hooks/use-daily-limit";
+import { useLocalDateKey } from "@/hooks/use-local-date-key";
 import { supabase, ReadingPassage, ReadingQuestion } from "@/lib/supabase/client";
-import { FALLBACK_READING_CONTENT } from "@/lib/fallback-content";
+import { buildFallbackReadingContent } from "@/lib/fallback-content";
 import { dailyShuffle, uniqueBy } from "@/lib/daily-rotation";
 import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 import { Navbar } from "@/components/shared/Navbar";
@@ -62,6 +63,7 @@ export default function ReadingPage() {
   const { dailyCount, canContinue, getRemainingExercises, getTimeUntilReset, incrementDailyCount, DAILY_FREE_LIMIT } = useDailyLimit(isFree());
   const [showDailyLimit, setShowDailyLimit] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const rotationDay = useLocalDateKey();
   const router = useRouter();
 
   const [passages, setPassages] = useState<(ReadingPassage & { questions: ReadingQuestion[] })[]>([]);
@@ -75,12 +77,12 @@ export default function ReadingPage() {
   const [difficulty, setDifficulty] = useState<string>("all");
 
   const getFallbackPassages = useCallback(() => {
-    const filtered = FALLBACK_READING_CONTENT.filter((passage) => {
+    const filtered = buildFallbackReadingContent(600).filter((passage) => {
       return difficulty !== "all" ? passage.difficulty === difficulty : true;
     });
 
     return isFree() ? filtered.slice(0, 10) : filtered;
-  }, [difficulty, isFree]);
+  }, [difficulty, isFree, rotationDay]);
 
   const fetchPassages = useCallback(async () => {
     setLoading(true);
@@ -91,7 +93,7 @@ export default function ReadingPage() {
         query = query.eq("difficulty", difficulty);
       }
 
-      const maxPassages = isFree() ? 10 : 2000;
+      const maxPassages = isFree() ? 10 : 600;
       const { data: passagesData, error: passagesError } = await query.range(0, maxPassages - 1);
 
       if (passagesError) throw passagesError;
@@ -131,7 +133,7 @@ export default function ReadingPage() {
     } finally {
       setLoading(false);
     }
-  }, [difficulty, getFallbackPassages, isFree]);
+  }, [difficulty, getFallbackPassages, isFree, rotationDay]);
 
   useEffect(() => {
     if (!authLoading && !user) {

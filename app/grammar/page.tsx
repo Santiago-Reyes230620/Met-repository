@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useDailyLimit } from "@/hooks/use-daily-limit";
-import { supabase, GrammarExercise } from "@/lib/supabase/client";
-import { FALLBACK_GRAMMAR_EXERCISES } from "@/lib/fallback-content";
+import { useLocalDateKey } from "@/hooks/use-local-date-key";
+import { GrammarExercise } from "@/lib/supabase/client";
+import { buildFallbackGrammarExercises } from "../../lib/fallback-content";
 import { dailyShuffle, uniqueBy } from "@/lib/daily-rotation";
-import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +54,7 @@ export default function GrammarPage() {
   const { user, loading: authLoading } = useAuth();
   const { subscription, loading: subLoading, hasAccess, isFree } = useSubscription();
   const { dailyCount, canContinue, getRemainingExercises, getTimeUntilReset, incrementDailyCount, DAILY_FREE_LIMIT } = useDailyLimit(isFree());
+  const rotationDay = useLocalDateKey();
   const router = useRouter();
 
   const [exercises, setExercises] = useState<GrammarExercise[]>([]);
@@ -69,45 +70,28 @@ export default function GrammarPage() {
   const [showFeedback, setShowFeedback] = useState(false);
 
   const getFallbackExercises = useCallback(() => {
-    const filtered = FALLBACK_GRAMMAR_EXERCISES.filter((exercise) => {
+    const filtered = buildFallbackGrammarExercises(2500).filter((exercise: GrammarExercise) => {
       const matchesCategory = selectedCategory ? exercise.category === selectedCategory : true;
       const matchesDifficulty = difficulty !== "all" ? exercise.difficulty === difficulty : true;
       return matchesCategory && matchesDifficulty;
     });
 
-    return isFree() ? filtered.slice(0, 30) : filtered;
-  }, [selectedCategory, difficulty, isFree]);
+    const scope = `grammar-practice-${rotationDay}`;
+    return dailyShuffle(filtered, scope).slice(0, isFree() ? 30 : 2500);
+  }, [selectedCategory, difficulty, isFree, rotationDay]);
 
   const fetchExercises = useCallback(async () => {
     setLoading(true);
     try {
-      let query = supabase.from("grammar_exercises").select("*");
-
-      if (selectedCategory) {
-        query = query.eq("category", selectedCategory);
-      }
-
-      if (difficulty !== "all") {
-        query = query.eq("difficulty", difficulty);
-      }
-
-      const maxItems = isFree() ? 30 : 5000;
-      const { data, error } = await query.range(0, maxItems - 1);
-
-      if (error) throw error;
-
-      const fetchedExercises = (data || []) as GrammarExercise[];
       const fallbackExercises = getFallbackExercises();
-
-      const merged = mergeGrammarExercises(fetchedExercises, fallbackExercises, maxItems);
-      setExercises(merged);
+      setExercises(fallbackExercises);
       setCurrentIndex(0);
       setSelectedAnswer(null);
       setShowResult(false);
       setCorrectCount(0);
       setAnsweredCount(0);
     } catch (error) {
-      console.error("Error fetching exercises:", mapSupabaseErrorMessage(error));
+      console.error("Error preparing exercises:", error);
       setExercises(getFallbackExercises());
       setCurrentIndex(0);
       setSelectedAnswer(null);
@@ -117,7 +101,7 @@ export default function GrammarPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedCategory, difficulty, getFallbackExercises, isFree]);
+  }, [getFallbackExercises]);
 
   useEffect(() => {
     if (!authLoading && !user) {

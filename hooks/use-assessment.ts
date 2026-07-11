@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase, AssessmentResult } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { isSupabaseMissingTableError, mapSupabaseErrorMessage } from '@/lib/supabase-error';
+import { dailyShuffle } from '@/lib/daily-rotation';
 
 export type AssessmentQuestion = {
   id: string;
@@ -18,7 +19,7 @@ export type AssessmentQuestion = {
 };
 
 export const useAssessment = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -36,8 +37,7 @@ export const useAssessment = () => {
   >;
 
   const calculateScores = useCallback(
-    (userAnswers: Record<string, string>): CalculatedScores => {
-      const questions = getAssessmentQuestions();
+    (userAnswers: Record<string, string>, questions: AssessmentQuestion[]): CalculatedScores => {
       const scoreByType: Record<string, { correct: number; total: number }> = {
         grammar: { correct: 0, total: 0 },
         vocabulary: { correct: 0, total: 0 },
@@ -114,12 +114,13 @@ export const useAssessment = () => {
   );
 
   const submitAssessment = useCallback(
-    async (userAnswers: Record<string, string>) => {
+    async (userAnswers: Record<string, string>, questionsOverride?: AssessmentQuestion[]) => {
       if (!user) return;
 
       try {
         setLoading(true);
-        const scores = calculateScores(userAnswers);
+        const assessmentQuestions = questionsOverride ?? getAssessmentQuestions();
+        const scores = calculateScores(userAnswers, assessmentQuestions);
 
         const { data, error } = await supabase
           .from('assessment_results')
@@ -143,14 +144,18 @@ export const useAssessment = () => {
           savedResult = data;
         }
 
+        const bestScore = (current: number | null | undefined, incoming: number) => {
+          return Math.max(current ?? 0, incoming);
+        };
+
         // Update profile through AuthContext so dashboard hooks react immediately.
         const { error: profileError } = await updateProfile({
-          grammar_score: scores.grammar_score,
-          vocabulary_score: scores.vocabulary_score,
-          reading_score: scores.reading_score,
-          listening_score: scores.listening_score,
-          speaking_score: scores.speaking_score,
-          writing_score: scores.writing_score,
+          grammar_score: bestScore(profile?.grammar_score, scores.grammar_score),
+          vocabulary_score: bestScore(profile?.vocabulary_score, scores.vocabulary_score),
+          reading_score: bestScore(profile?.reading_score, scores.reading_score),
+          listening_score: bestScore(profile?.listening_score, scores.listening_score),
+          speaking_score: bestScore(profile?.speaking_score, scores.speaking_score),
+          writing_score: bestScore(profile?.writing_score, scores.writing_score),
           has_completed_assessment: true,
         });
 
@@ -174,7 +179,7 @@ export const useAssessment = () => {
         setLoading(false);
       }
     },
-    [user, calculateScores, updateProfile]
+    [user, profile, calculateScores, updateProfile]
   );
 
   return {
@@ -188,7 +193,7 @@ export const useAssessment = () => {
   };
 };
 
-export const getAssessmentQuestions = (): AssessmentQuestion[] => [
+const assessmentQuestionBank: AssessmentQuestion[] = [
   // Grammar - 5 questions
   {
     id: 'gram_1',
@@ -506,3 +511,28 @@ export const getAssessmentQuestions = (): AssessmentQuestion[] => [
     difficulty: 'hard',
   },
 ];
+
+const assessmentQuestionTypes: AssessmentQuestion['type'][] = [
+  'grammar',
+  'vocabulary',
+  'reading',
+  'listening',
+  'speaking',
+  'writing',
+];
+
+const DAILY_QUESTIONS_PER_TYPE = 4;
+
+export const getAssessmentQuestions = (): AssessmentQuestion[] => {
+  const selected = assessmentQuestionTypes.flatMap((type) => {
+    const perType = assessmentQuestionBank.filter((question) => question.type === type);
+    const dailyPerType = dailyShuffle(perType, `assessment-${type}`).slice(0, DAILY_QUESTIONS_PER_TYPE);
+
+    return dailyPerType.map((question) => ({
+      ...question,
+      options: question.options ? dailyShuffle(question.options, `assessment-options-${question.id}`) : question.options,
+    }));
+  });
+
+  return dailyShuffle(selected, 'assessment-daily-mix');
+};

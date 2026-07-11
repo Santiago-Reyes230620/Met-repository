@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/use-subscription';
+import { useLocalDateKey } from '@/hooks/use-local-date-key';
 import { dailyShuffle } from '@/lib/daily-rotation';
 import { Navbar } from '@/components/shared/Navbar';
 import { Footer } from '@/components/shared/Footer';
@@ -13,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, CheckCircle2, XCircle, RotateCcw, BookOpen, TrendingUp } from 'lucide-react';
+import { expandExercisePool } from '@/lib/exercise-pool';
 
 interface WritingExercise {
   id: number;
@@ -43,7 +45,14 @@ interface EvaluationResult {
   overallScore: number;
 }
 
-const WRITING_EXERCISES: WritingExercise[] = [
+const writingVariantNotes = [
+  'Use a clear structure from start to finish.',
+  'Include one concrete example to support your answer.',
+  'Keep the tone appropriate for the audience.',
+  'End with a strong closing sentence.',
+];
+
+const BASE_WRITING_EXERCISES: WritingExercise[] = [
   // Emails (5)
   {
     id: 1,
@@ -524,6 +533,21 @@ const WRITING_EXERCISES: WritingExercise[] = [
   }
 ];
 
+const WRITING_EXERCISES = expandExercisePool(BASE_WRITING_EXERCISES, 4, (exercise, variantIndex) => {
+  if (variantIndex === 0) {
+    return exercise;
+  }
+
+  const note = writingVariantNotes[variantIndex % writingVariantNotes.length];
+
+  return {
+    ...exercise,
+    id: exercise.id + variantIndex * 1000,
+    title: `${exercise.title} (${variantIndex + 1})`,
+    prompt: `${exercise.prompt} ${note}`,
+  };
+});
+
 const GRAMMAR_PATTERNS = [
   {
     pattern: /^[a-z]/m,
@@ -573,6 +597,7 @@ export default function WritingPage() {
   const { user, loading: authLoading } = useAuth();
   const { hasAccess, isFree, loading: subLoading } = useSubscription();
   const [showPaywall, setShowPaywall] = useState(false);
+  const rotationDay = useLocalDateKey();
 
   const [exercises, setExercises] = useState<WritingExercise[]>([]);
   const [filteredExercises, setFilteredExercises] = useState<WritingExercise[]>([]);
@@ -593,15 +618,16 @@ export default function WritingPage() {
   }, [authLoading]);
 
   useEffect(() => {
-    if (!authLoading && !subLoading && user && isFree() && !hasAccess('writing')) {
+    if (!authLoading && !subLoading && user && !isFree() && !hasAccess('writing')) {
       setShowPaywall(true);
     }
   }, [authLoading, subLoading, user, isFree, hasAccess]);
 
   // Separate effect for data filtering (no hasAccess or isFree in dependencies)
   useEffect(() => {
-    setExercises(dailyShuffle(WRITING_EXERCISES, 'writing-practice'));
-  }, []);
+    const shuffled = dailyShuffle(WRITING_EXERCISES, `writing-practice-${rotationDay}`);
+    setExercises(isFree() ? shuffled.slice(0, 8) : shuffled);
+  }, [rotationDay, isFree]);
 
   // Separate effect for filtering exercises (no hasAccess or isFree in dependencies)
   useEffect(() => {
@@ -615,8 +641,8 @@ export default function WritingPage() {
       filtered = filtered.filter((e) => e.difficulty === difficultyFilter);
     }
 
-    setFilteredExercises(dailyShuffle(filtered, `writing-practice-${categoryFilter}-${difficultyFilter}`));
-  }, [exercises, categoryFilter, difficultyFilter]);
+    setFilteredExercises(dailyShuffle(filtered, `writing-practice-${categoryFilter}-${difficultyFilter}-${rotationDay}`));
+  }, [exercises, categoryFilter, difficultyFilter, rotationDay]);
 
   // If filters leave the list empty, automatically reset to show all exercises.
   useEffect(() => {

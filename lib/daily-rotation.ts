@@ -1,5 +1,7 @@
+import { getLocalDateKey } from "@/lib/date-utils";
+
 export const getTodaySeed = (): string => {
-  return new Date().toISOString().split("T")[0];
+  return getLocalDateKey();
 };
 
 const createSeededRandom = (seed: string) => {

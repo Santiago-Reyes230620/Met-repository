@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useDailyLimit } from "@/hooks/use-daily-limit";
+import { useLocalDateKey } from "@/hooks/use-local-date-key";
 import { supabase, VocabularyExercise } from "@/lib/supabase/client";
-import { FALLBACK_VOCABULARY_EXERCISES } from "@/lib/fallback-content";
+import { buildFallbackVocabularyExercises } from "@/lib/fallback-content";
 import { dailyShuffle, uniqueBy } from "@/lib/daily-rotation";
 import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
 import { Navbar } from "@/components/shared/Navbar";
@@ -47,6 +48,7 @@ export default function VocabularyPage() {
   const { subscription, loading: subLoading, hasAccess, isFree } = useSubscription();
   const { dailyCount, canContinue, getRemainingExercises, getTimeUntilReset, incrementDailyCount, DAILY_FREE_LIMIT } = useDailyLimit(isFree());
   const [showDailyLimit, setShowDailyLimit] = useState(false);
+  const rotationDay = useLocalDateKey();
   const router = useRouter();
 
   const [exercises, setExercises] = useState<VocabularyExercise[]>([]);
@@ -59,12 +61,12 @@ export default function VocabularyPage() {
   const [difficulty, setDifficulty] = useState<string>("all");
 
   const getFallbackExercises = useCallback(() => {
-    const filtered = FALLBACK_VOCABULARY_EXERCISES.filter((exercise) => {
+    const filtered = buildFallbackVocabularyExercises(4500).filter((exercise) => {
       return difficulty !== "all" ? exercise.difficulty === difficulty : true;
     });
 
     return isFree() ? filtered.slice(0, 30) : filtered;
-  }, [difficulty, isFree]);
+  }, [difficulty, isFree, rotationDay]);
 
   const fetchExercises = useCallback(async () => {
     setLoading(true);
@@ -75,7 +77,7 @@ export default function VocabularyPage() {
         query = query.eq("difficulty", difficulty);
       }
 
-      const maxItems = isFree() ? 30 : 5000;
+      const maxItems = isFree() ? 30 : 4500;
       const { data, error } = await query.range(0, maxItems - 1);
 
       if (error) throw error;
@@ -101,7 +103,7 @@ export default function VocabularyPage() {
     } finally {
       setLoading(false);
     }
-  }, [difficulty, getFallbackExercises, isFree]);
+  }, [difficulty, getFallbackExercises, isFree, rotationDay]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -299,7 +301,6 @@ export default function VocabularyPage() {
                     <CardContent>
                       <div className="mb-6 text-center">
                         <h2 className="text-3xl font-bold mb-2 text-gradient">{currentExercise?.word}</h2>
-                        <p className="text-muted-foreground">{currentExercise?.definition}</p>
                       </div>
 
                       {currentExercise?.example_sentence && (
@@ -311,7 +312,7 @@ export default function VocabularyPage() {
                       )}
 
                       <div className="mb-4 text-center text-sm text-muted-foreground">
-                        What is the correct meaning of this word?
+                        Which definition best matches this word?
                       </div>
 
                       <RadioGroup value={selectedAnswer || ""} onValueChange={handleAnswer} className="space-y-3">

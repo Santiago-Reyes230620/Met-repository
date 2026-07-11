@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/client";
 import { mapSupabaseErrorMessage } from "@/lib/supabase-error";
+import { getLocalDateKey } from "@/lib/date-utils";
 
 const DAILY_FREE_LIMIT = 30; // 30 exercises per day for free users
 
@@ -21,7 +22,7 @@ export function useDailyLimit(isFreeUser = true) {
 
     const fetchDailyCount = async () => {
       try {
-        const today = new Date().toISOString().split("T")[0];
+        const today = getLocalDateKey();
 
         const { data, error } = await supabase
           .from("daily_usage")
@@ -49,7 +50,7 @@ export function useDailyLimit(isFreeUser = true) {
     if (!user) return;
 
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = getLocalDateKey();
 
       // Check if record exists
       const { data: existing } = await supabase
