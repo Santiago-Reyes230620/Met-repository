@@ -77,7 +77,7 @@ export default function VocabularyPage() {
         query = query.eq("difficulty", difficulty);
       }
 
-      const maxItems = isFree() ? 30 : 4500;
+      const maxItems = isFree() ? 10 : 4500;
       const { data, error } = await query.range(0, maxItems - 1);
 
       if (error) throw error;

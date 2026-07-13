@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { countPhraseMatches, extractMeaningfulTerms, isLikelyEnglishText, normalizeText, tokenizeText } from "@/lib/text-analysis";
 import { PaywallAlert } from "@/components/shared/PaywallAlert";
 import {
   Mic,
@@ -401,6 +402,7 @@ export default function SpeakingPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [detectedKeywords, setDetectedKeywords] = useState<string[]>([]);
+  const [feedbackReasons, setFeedbackReasons] = useState<string[]>([]);
   const [score, setScore] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -508,6 +510,7 @@ export default function SpeakingPage() {
     setInterimTranscript("");
     finalTranscriptRef.current = "";
     setDetectedKeywords([]);
+    setFeedbackReasons([]);
     setScore(null);
     setShowResult(false);
     setError(null);
@@ -562,8 +565,8 @@ export default function SpeakingPage() {
     }
 
     const scope = `speaking-practice-${selectedCategory || "all"}-${difficulty}`;
-  const shuffled = dailyShuffle(filtered, scope);
-  setFilteredExercises(isFree() ? shuffled.slice(0, 8) : shuffled);
+    const shuffled = dailyShuffle(filtered, scope);
+    setFilteredExercises(isFree() ? shuffled.slice(0, 10) : shuffled);
     setCurrentIndex(0);
     resetExerciseState();
   }, [selectedCategory, difficulty, resetExerciseState]);
@@ -635,18 +638,49 @@ export default function SpeakingPage() {
     }
 
     const currentExercise = filteredExercises[currentIndex];
-    const lowerTranscript = transcript.toLowerCase();
+    const normalizedTranscript = normalizeText(transcript);
+    const transcriptTerms = tokenizeText(transcript);
     const detected = currentExercise.keywords.filter((keyword) =>
-      lowerTranscript.includes(keyword.toLowerCase())
+      normalizedTranscript.includes(normalizeText(keyword))
     );
+    const referenceTerms = extractMeaningfulTerms(`${currentExercise.prompt} ${currentExercise.sampleAnswer}`).slice(0, 12);
+    const referenceMatches = countPhraseMatches(transcript, referenceTerms);
+    const minimumWords = currentExercise.difficulty === "beginner" ? 12 : currentExercise.difficulty === "intermediate" ? 18 : 24;
+    const languageLooksEnglish = isLikelyEnglishText(transcript);
+    const minimumKeywordMatches = Math.max(3, Math.ceil(currentExercise.keywords.length * 0.4));
+    const requiredReferenceMatches = Math.max(2, Math.ceil(referenceTerms.length * 0.25));
+    const keywordCoverage = detected.length / Math.max(1, currentExercise.keywords.length);
+    const referenceCoverage = referenceMatches / Math.max(1, referenceTerms.length);
+    const meetsCoreCriteria =
+      languageLooksEnglish &&
+      transcriptTerms.length >= minimumWords &&
+      detected.length >= minimumKeywordMatches &&
+      referenceMatches >= requiredReferenceMatches;
+    const reasons: string[] = [];
+
+    if (!languageLooksEnglish) {
+      reasons.push("La respuesta parece no estar en inglés.");
+    }
+    if (transcriptTerms.length < minimumWords) {
+      reasons.push(`La respuesta es demasiado corta: necesita al menos ${minimumWords} palabras.`);
+    }
+    if (detected.length < minimumKeywordMatches) {
+      reasons.push(`Faltan ideas clave del ejercicio: detecté ${detected.length} de ${minimumKeywordMatches} palabras clave necesarias.`);
+    }
+    if (referenceMatches < requiredReferenceMatches) {
+      reasons.push("La respuesta no cubre suficientes elementos del ejemplo esperado.");
+    }
 
     setDetectedKeywords(detected);
-    const calculatedScore = Math.round((detected.length / currentExercise.keywords.length) * 100);
+    setFeedbackReasons(reasons);
+    const calculatedScore = meetsCoreCriteria
+      ? Math.round((keywordCoverage * 75 + referenceCoverage * 25) * 100)
+      : 0;
     setScore(calculatedScore);
     setShowResult(true);
     setAnsweredCount((prev) => prev + 1);
 
-    if (calculatedScore >= 60) {
+    if (calculatedScore >= 65) {
       setCorrectCount((prev) => prev + 1);
     }
   };
@@ -999,6 +1033,21 @@ export default function SpeakingPage() {
                           ))}
                         </div>
                       </div>
+
+                      {/* Feedback Reasons */}
+                      {feedbackReasons.length > 0 && (
+                        <div className="space-y-3">
+                          <h3 className="font-semibold text-sm text-muted-foreground">WHY THIS NEEDS IMPROVEMENT</h3>
+                          <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                            {feedbackReasons.map((reason, index) => (
+                              <div key={index} className="flex items-start gap-2 text-sm text-foreground">
+                                <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                                <span>{reason}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Sample Answer */}
                       <div className="space-y-3">

@@ -77,7 +77,7 @@ export default function GrammarPage() {
     });
 
     const scope = `grammar-practice-${rotationDay}`;
-    return dailyShuffle(filtered, scope).slice(0, isFree() ? 30 : 2500);
+    return dailyShuffle(filtered, scope).slice(0, isFree() ? 10 : 2500);
   }, [selectedCategory, difficulty, isFree, rotationDay]);
 
   const fetchExercises = useCallback(async () => {

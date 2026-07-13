@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, CheckCircle2, XCircle, RotateCcw, BookOpen, TrendingUp } from 'lucide-react';
 import { expandExercisePool } from '@/lib/exercise-pool';
+import { extractMeaningfulTerms, isLikelyEnglishText, normalizeText, tokenizeText } from '@/lib/text-analysis';
 
 interface WritingExercise {
   id: number;
@@ -43,6 +44,7 @@ interface EvaluationResult {
   contentScore: number;
   grammarScore: number;
   overallScore: number;
+  feedbackReasons: string[];
 }
 
 const writingVariantNotes = [
@@ -626,7 +628,7 @@ export default function WritingPage() {
   // Separate effect for data filtering (no hasAccess or isFree in dependencies)
   useEffect(() => {
     const shuffled = dailyShuffle(WRITING_EXERCISES, `writing-practice-${rotationDay}`);
-    setExercises(isFree() ? shuffled.slice(0, 8) : shuffled);
+    setExercises(isFree() ? shuffled.slice(0, 10) : shuffled);
   }, [rotationDay, isFree]);
 
   // Separate effect for filtering exercises (no hasAccess or isFree in dependencies)
@@ -656,29 +658,36 @@ export default function WritingPage() {
   }, [exercises.length, filteredExercises.length, categoryFilter, difficultyFilter]);
 
   const evaluateAnswer = (answer: string, exercise: WritingExercise): EvaluationResult => {
-    const wordCount = answer.trim().split(/\s+/).length;
+    const wordCount = tokenizeText(answer).length;
     const meetsMinWords = wordCount >= exercise.minWords;
+    const normalizedAnswer = normalizeText(answer);
+    const languageLooksEnglish = isLikelyEnglishText(answer);
 
     // Check which key points are covered
     const keyPointsCovered: string[] = [];
     const keyPointsMissing: string[] = [];
 
     exercise.requirements.forEach((requirement) => {
-      const requirementLower = requirement.toLowerCase();
-      const answerLower = answer.toLowerCase();
+      const requirementTerms = extractMeaningfulTerms(requirement, 4);
+      const matchedTerms = requirementTerms.filter((term) => normalizedAnswer.includes(term));
+      const minimumMatches = requirementTerms.length <= 2 ? 1 : 2;
 
-      // Simple heuristic: check if key words from requirement are in answer
-      const requirementWords = requirementLower
-        .split(/[\s,]/g)
-        .filter((w) => w.length > 3);
-      const matchedWords = requirementWords.filter((w) => answerLower.includes(w));
-
-      if (matchedWords.length >= Math.ceil(requirementWords.length * 0.5)) {
+      if (matchedTerms.length >= minimumMatches || normalizedAnswer.includes(normalizeText(requirement))) {
         keyPointsCovered.push(requirement);
       } else {
         keyPointsMissing.push(requirement);
       }
     });
+
+    const referenceTerms = extractMeaningfulTerms(`${exercise.prompt} ${exercise.sampleAnswer}`).slice(0, 20);
+    const referenceMatches = referenceTerms.filter((term) => normalizedAnswer.includes(term));
+    const requirementCoverage = keyPointsCovered.length / exercise.requirements.length;
+    const referenceCoverage = referenceMatches.length / Math.max(1, referenceTerms.length);
+    const meetsCoreCriteria =
+      languageLooksEnglish &&
+      meetsMinWords &&
+      keyPointsCovered.length >= Math.ceil(exercise.requirements.length * 0.6) &&
+      referenceMatches.length >= Math.max(3, Math.ceil(referenceTerms.length * 0.25));
 
     // Grammar checking
     const grammarIssues: GrammarIssue[] = [];
@@ -715,19 +724,37 @@ export default function WritingPage() {
       });
     }
 
+    const feedbackReasons: string[] = [];
+
+    if (!languageLooksEnglish) {
+      feedbackReasons.push('La respuesta parece no estar en inglés.');
+    }
+    if (!meetsMinWords) {
+      feedbackReasons.push(`La respuesta es demasiado corta: necesita al menos ${exercise.minWords} palabras.`);
+    }
+    if (keyPointsMissing.length > 0) {
+      feedbackReasons.push(`Faltan estos puntos: ${keyPointsMissing.slice(0, 3).join(', ')}${keyPointsMissing.length > 3 ? '...' : ''}.`);
+    }
+    if (grammarIssues.length > 0) {
+      feedbackReasons.push(`Hay ${grammarIssues.length} observación(es) de gramática o formato.`);
+    }
+    if (referenceMatches.length < Math.max(3, Math.ceil(referenceTerms.length * 0.25))) {
+      feedbackReasons.push('La respuesta no se parece lo suficiente a una respuesta válida del ejercicio.');
+    }
+
     // Score calculation
-    const contentScore = Math.min(
-      100,
-      (keyPointsCovered.length / exercise.requirements.length) * 100 *
-      (meetsMinWords ? 1 : 0.7)
-    );
+    const contentScore = meetsCoreCriteria
+      ? Math.min(100, Math.round((requirementCoverage * 75 + referenceCoverage * 25) * 100))
+      : 0;
 
     const grammarScore = Math.max(
       0,
       100 - grammarIssues.length * (grammarIssues.some(i => i.severity === 'error') ? 15 : 5)
     );
 
-    const overallScore = Math.round((contentScore * 0.6 + grammarScore * 0.4) / 10) * 10;
+    const overallScore = meetsCoreCriteria
+      ? Math.round((contentScore * 0.6 + grammarScore * 0.4) / 10) * 10
+      : Math.max(0, Math.round((contentScore * 0.7 + grammarScore * 0.3) / 10) * 10);
 
     return {
       wordCount,
@@ -737,7 +764,8 @@ export default function WritingPage() {
       grammarIssues,
       contentScore: Math.round(contentScore),
       grammarScore: Math.round(grammarScore),
-      overallScore: Math.max(0, Math.min(100, overallScore))
+      overallScore: Math.max(0, Math.min(100, overallScore)),
+      feedbackReasons
     };
   };
 
@@ -1216,6 +1244,21 @@ export default function WritingPage() {
                                   <strong>{issue.type}:</strong> {issue.description}
                                 </AlertDescription>
                               </Alert>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Feedback Reasons */}
+                      {evaluation.feedbackReasons.length > 0 && (
+                        <div>
+                          <h3 className="font-semibold text-gray-900 mb-3">Why this needs improvement</h3>
+                          <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                            {evaluation.feedbackReasons.map((reason, index) => (
+                              <div key={index} className="flex items-start gap-2 text-sm text-foreground">
+                                <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                                <span>{reason}</span>
+                              </div>
                             ))}
                           </div>
                         </div>
