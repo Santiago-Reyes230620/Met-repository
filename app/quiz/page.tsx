@@ -1319,6 +1319,47 @@ export default function DailyQuizPage() {
     return typeof question.correctAnswer === "number" && answer === question.correctAnswer;
   }, [isAnswerProvided]);
 
+  const getOpenResponseFeedback = useCallback((question: QuizQuestion, answer: QuizAnswer) => {
+    if (question.responseMode !== "writing" && question.responseMode !== "speech") {
+      return null;
+    }
+
+    const rawAnswer = typeof answer === "string" ? answer.trim() : "";
+    const normalizedAnswer = rawAnswer.toLowerCase();
+    const keywords = (question.expectedKeywords || []).map((keyword) => keyword.toLowerCase());
+    const matchedKeywords = keywords.filter((keyword) => normalizedAnswer.includes(keyword));
+    const missingKeywords = keywords.filter((keyword) => !normalizedAnswer.includes(keyword));
+    const minMatches = Math.max(2, Math.ceil(keywords.length * 0.5));
+    const minWords = question.responseMode === "writing" ? 12 : 6;
+    const wordCount = rawAnswer ? rawAnswer.split(/\s+/).filter(Boolean).length : 0;
+
+    if (!rawAnswer) {
+      return {
+        reason: "No incluiste una respuesta para esta pregunta.",
+        recommendation: `Escribe ${question.responseMode === "writing" ? "2-3 oraciones" : "una respuesta completa"} con una idea clara y un ejemplo concreto.`,
+      };
+    }
+
+    if (wordCount < minWords) {
+      return {
+        reason: `Tu respuesta es demasiado corta (${wordCount} palabras). Para esta sección se esperan al menos ${minWords} palabras.`,
+        recommendation: "Amplia tu respuesta con una razón y un ejemplo específico para desarrollar mejor la idea.",
+      };
+    }
+
+    if (keywords.length > 0 && matchedKeywords.length < minMatches) {
+      return {
+        reason: `La respuesta no cubre suficientes ideas clave. Faltan conceptos como: ${missingKeywords.slice(0, 3).join(", ")}.`,
+        recommendation: `Incluye explícitamente ${Math.max(1, minMatches - matchedKeywords.length)} idea(s) clave más y conecta tus puntos con frases como "because" y "for example".`,
+      };
+    }
+
+    return {
+      reason: "La respuesta tiene base, pero aún falta precisión para cumplir completamente el criterio esperado.",
+      recommendation: "Haz la idea principal más específica y añade un ejemplo real para fortalecer tu respuesta.",
+    };
+  }, []);
+
   const getStorageKey = useCallback(
     (targetPlanId: string) => {
       if (!user?.id) return "";
@@ -2380,7 +2421,10 @@ export default function DailyQuizPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {wrongAnswers.map((item) => (
+                  {wrongAnswers.map((item) => {
+                    const openResponseFeedback = getOpenResponseFeedback(item.question, item.answer);
+
+                    return (
                     <div key={item.question.id} className="border-l-4 border-destructive pl-4 py-2">
                       <p className="font-medium mb-2">{item.question.question}</p>
                       {item.question.passage && (
@@ -2404,6 +2448,18 @@ export default function DailyQuizPage() {
                             {(item.question.options || [])[item.question.correctAnswer]}
                           </p>
                         )}
+                        {(item.question.responseMode === "writing" || item.question.responseMode === "speech") && openResponseFeedback && (
+                          <div className="mt-2 space-y-1">
+                            <p className="text-sm text-rose-700">
+                              <span className="font-semibold">Why it is incorrect:</span>{" "}
+                              {openResponseFeedback.reason}
+                            </p>
+                            <p className="text-sm text-blue-700">
+                              <span className="font-semibold">Recommendation:</span>{" "}
+                              {openResponseFeedback.recommendation}
+                            </p>
+                          </div>
+                        )}
                         {item.question.responseMode === "writing" && (
                           <p className="text-sm">
                             <span className="font-semibold text-green-600">Expected focus:</span>{" "}
@@ -2423,7 +2479,7 @@ export default function DailyQuizPage() {
                         </div>
                       )}
                     </div>
-                  ))}
+                  )})}
                 </CardContent>
               </Card>
             )}

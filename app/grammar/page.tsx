@@ -213,7 +213,9 @@ export default function GrammarPage() {
             </p>
             {!loading && exercises.length > 0 && (
               <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm text-primary">
-                {exercises.length}+ exercises loaded for practice
+                {isFree()
+                  ? "10 exercises loaded for practice"
+                  : `${exercises.length} exercises loaded for practice`}
               </div>
             )}
           </div>

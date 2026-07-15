@@ -65,7 +65,7 @@ export default function VocabularyPage() {
       return difficulty !== "all" ? exercise.difficulty === difficulty : true;
     });
 
-    return isFree() ? filtered.slice(0, 30) : filtered;
+    return isFree() ? filtered.slice(0, 10) : filtered;
   }, [difficulty, isFree, rotationDay]);
 
   const fetchExercises = useCallback(async () => {
@@ -205,7 +205,9 @@ export default function VocabularyPage() {
             </p>
             {!loading && exercises.length > 0 && (
               <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
-                {exercises.length}+ vocabulary exercises ready to practice
+                {isFree()
+                  ? "10 vocabulary exercises ready to practice"
+                  : `${exercises.length} vocabulary exercises ready to practice`}
               </div>
             )}
           </div>
