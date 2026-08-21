@@ -41,12 +41,18 @@ const mergeReadingPassages = (
 ) => {
   const fetchedWithShuffledQuestions = fetched.map((passage) => ({
     ...passage,
-    questions: dailyShuffle(passage.questions, `reading-questions-${passage.id}`),
+    questions: dailyShuffle(
+      uniqueBy(passage.questions, (question) => `${question.question}::${question.correct_answer}`),
+      `reading-questions-${passage.id}`
+    ),
   }));
 
   const fallbackWithShuffledQuestions = fallback.map((passage) => ({
     ...passage,
-    questions: dailyShuffle(passage.questions, `reading-questions-${passage.id}`),
+    questions: dailyShuffle(
+      uniqueBy(passage.questions, (question) => `${question.question}::${question.correct_answer}`),
+      `reading-questions-${passage.id}`
+    ),
   }));
 
   const uniquePassages = uniqueBy(
@@ -81,7 +87,8 @@ export default function ReadingPage() {
       return difficulty !== "all" ? passage.difficulty === difficulty : true;
     });
 
-    return isFree() ? filtered.slice(0, 10) : filtered;
+    const rotated = dailyShuffle(filtered, `reading-practice-${difficulty}-${rotationDay}`);
+    return isFree() ? rotated.slice(0, 10) : rotated;
   }, [difficulty, isFree, rotationDay]);
 
   const fetchPassages = useCallback(async () => {
@@ -133,7 +140,7 @@ export default function ReadingPage() {
     } finally {
       setLoading(false);
     }
-  }, [difficulty, getFallbackPassages, isFree, rotationDay]);
+  }, [difficulty, getFallbackPassages, isFree]);
 
   useEffect(() => {
     if (!authLoading && !user) {

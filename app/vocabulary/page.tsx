@@ -65,7 +65,8 @@ export default function VocabularyPage() {
       return difficulty !== "all" ? exercise.difficulty === difficulty : true;
     });
 
-    return isFree() ? filtered.slice(0, 10) : filtered;
+    const rotated = dailyShuffle(filtered, `vocabulary-practice-${difficulty}-${rotationDay}`);
+    return isFree() ? rotated.slice(0, 10) : rotated;
   }, [difficulty, isFree, rotationDay]);
 
   const fetchExercises = useCallback(async () => {
@@ -103,7 +104,7 @@ export default function VocabularyPage() {
     } finally {
       setLoading(false);
     }
-  }, [difficulty, getFallbackExercises, isFree, rotationDay]);
+  }, [difficulty, getFallbackExercises, isFree]);
 
   useEffect(() => {
     if (!authLoading && !user) {
